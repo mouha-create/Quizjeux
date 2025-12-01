@@ -210,3 +210,10 @@ export const userStatsTable = pgTable("user_stats", {
   badges: text("badges").array().default(sql`ARRAY[]::text[]`),
   quizHistory: text("quiz_history").array().default(sql`ARRAY[]::text[]`),
 });
+
+// Session table for connect-pg-simple
+export const userSessionsTable = pgTable("user_sessions", {
+  sid: varchar("sid").primaryKey(),
+  sess: jsonb("sess").notNull(),
+  expire: timestamp("expire").notNull(),
+});

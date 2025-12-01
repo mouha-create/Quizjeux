@@ -40,7 +40,32 @@ if (process.env.DATABASE_URL) {
     sessionStore = new PgSession({
       conString: process.env.DATABASE_URL, // Use connection string directly
       tableName: "user_sessions", // Table name for sessions
-      createTableIfMissing: true, // Auto-create table if missing
+      createTableIfMissing: false, // Don't auto-create (we'll create it manually)
+      schemaName: "public", // Use public schema
+      pruneSessionInterval: 60, // Prune expired sessions every 60 seconds
+    });
+    
+    // Try to create the table manually if it doesn't exist
+    // This avoids the table.sql file issue
+    import("./database").then(async ({ db }) => {
+      try {
+        const { sql } = await import("drizzle-orm");
+        await db.execute(sql`
+          CREATE TABLE IF NOT EXISTS user_sessions (
+            sid VARCHAR(255) PRIMARY KEY,
+            sess JSONB NOT NULL,
+            expire TIMESTAMP NOT NULL
+          )
+        `);
+        console.log("Session table created successfully");
+      } catch (error: any) {
+        // Table might already exist, which is fine
+        if (!error.message?.includes("already exists")) {
+          console.warn("Could not create session table:", error.message);
+        }
+      }
+    }).catch(() => {
+      // Ignore if database module fails to load
     });
   } catch (error) {
     console.warn("Failed to initialize PostgreSQL session store, using memory store:", error);
