@@ -29,8 +29,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { getThemeClasses } from "@/lib/quiz-themes";
-import type { Quiz, QuizTheme, DifficultyLevel } from "@shared/schema";
-import { quizThemes, difficultyLevels } from "@shared/schema";
+import type { Quiz, QuizTheme, DifficultyLevel, QuizCategory } from "@shared/schema";
+import { quizThemes, difficultyLevels, quizCategories } from "@shared/schema";
 import { useState } from "react";
 import {
   Select,
@@ -222,7 +222,20 @@ export default function Library() {
               ))}
             </SelectContent>
           </Select>
-          {(selectedTheme !== "all" || selectedDifficulty !== "all" || searchQuery) && (
+          <Select value={selectedCategory} onValueChange={(v) => setSelectedCategory(v as QuizCategory | "all")}>
+            <SelectTrigger className="w-[140px]" data-testid="select-category-filter">
+              <SelectValue placeholder="All Categories" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {quizCategories.map((category) => (
+                <SelectItem key={category} value={category}>
+                  {category}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {(selectedTheme !== "all" || selectedDifficulty !== "all" || selectedCategory !== "all" || searchQuery) && (
             <Button
               variant="ghost"
               size="sm"
@@ -269,17 +282,32 @@ export default function Library() {
                       {quiz.description || "No description"}
                     </p>
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8 shrink-0"
-                        data-testid={`button-quiz-menu-${quiz.id}`}
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0"
+                      onClick={() => {
+                        const isFavorite = favorites.includes(quiz.id);
+                        toggleFavoriteMutation.mutate({ quizId: quiz.id, isFavorite });
+                      }}
+                      data-testid={`button-favorite-${quiz.id}`}
+                    >
+                      <Heart 
+                        className={`h-4 w-4 ${favorites.includes(quiz.id) ? "fill-red-500 text-red-500" : ""}`} 
+                      />
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 shrink-0"
+                          data-testid={`button-quiz-menu-${quiz.id}`}
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem asChild>
                         <Link href={`/edit/${quiz.id}`} className="flex items-center gap-2">
@@ -309,7 +337,8 @@ export default function Library() {
                         Delete
                       </DropdownMenuItem>
                     </DropdownMenuContent>
-                  </DropdownMenu>
+                    </DropdownMenu>
+                  </div>
                 </CardHeader>
                 <CardContent className="pb-3">
                   <div className="flex flex-wrap gap-2">
