@@ -368,10 +368,11 @@ export default function Create() {
       });
       setStep(1);
     },
-    onError: () => {
+    onError: (error: any) => {
+      const errorMessage = error?.message || "Could not generate questions. Please try again or create manually.";
       toast({
         title: "Generation failed",
-        description: "Could not generate questions. Please try again or create manually.",
+        description: errorMessage,
         variant: "destructive",
       });
     },

@@ -1,7 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { generateQuestions } from "./anthropic";
+import { generateQuestions as generateQuestionsAnthropic } from "./anthropic";
+import { generateQuestions as generateQuestionsOpenAI } from "./openai";
 import { insertQuizSchema, aiGenerateRequestSchema, loginSchema, signupSchema } from "@shared/schema";
 import type { Question, QuizResult } from "@shared/schema";
 import { hashPassword, verifyPassword } from "./auth";
@@ -189,13 +190,55 @@ export async function registerRoutes(
         });
       }
 
-      const questions = await generateQuestions(validationResult.data);
-      res.json({ questions });
-    } catch (error: any) {
-      console.error("AI generation error:", error);
-      const errorMessage = error.message || "Failed to generate questions. Please try again.";
+      let questions: Question[] | null = null;
+      let lastError: Error | null = null;
+
+      // Try Anthropic first
+      try {
+        if (process.env.ANTHROPIC_API_KEY) {
+          questions = await generateQuestionsAnthropic(validationResult.data);
+        }
+      } catch (anthropicError: any) {
+        console.error("Anthropic generation error:", anthropicError);
+        lastError = anthropicError instanceof Error ? anthropicError : new Error(String(anthropicError));
+        
+        // Check if it's a billing/credit error
+        const errorMessage = anthropicError?.error?.message || anthropicError?.message || "";
+        if (errorMessage.includes("crédit") || errorMessage.includes("credit") || errorMessage.includes("billing")) {
+          console.log("Anthropic billing error, trying OpenAI fallback...");
+        }
+      }
+
+      // Fallback to OpenAI if Anthropic failed or not configured
+      if (!questions) {
+        try {
+          if (process.env.OPENAI_API_KEY) {
+            questions = await generateQuestionsOpenAI(validationResult.data);
+          } else {
+            throw new Error("No AI provider configured. Please add ANTHROPIC_API_KEY or OPENAI_API_KEY.");
+          }
+        } catch (openaiError: any) {
+          console.error("OpenAI generation error:", openaiError);
+          lastError = openaiError instanceof Error ? openaiError : new Error(String(openaiError));
+        }
+      }
+
+      if (questions) {
+        return res.json({ questions });
+      }
+
+      // If both failed, return a user-friendly error
+      const userMessage = lastError?.message?.includes("crédit") || lastError?.message?.includes("credit")
+        ? "Le service de génération IA n'est pas disponible actuellement. Veuillez créer vos questions manuellement."
+        : "Impossible de générer des questions. Veuillez réessayer ou créer vos questions manuellement.";
+      
       res.status(500).json({ 
-        error: errorMessage
+        error: userMessage
+      });
+    } catch (error: any) {
+      console.error("Unexpected AI generation error:", error);
+      res.status(500).json({ 
+        error: "Une erreur est survenue lors de la génération. Veuillez réessayer ou créer vos questions manuellement."
       });
     }
   });
