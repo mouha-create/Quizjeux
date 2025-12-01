@@ -310,6 +310,44 @@ export default function Stats() {
         />
       </motion.div>
 
+      {/* Advanced Stats */}
+      {allResults.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+        >
+          <StatCard
+            icon={Timer}
+            label="Avg Time per Quiz"
+            value={`${Math.floor(averageTimePerQuiz / 60)}:${(averageTimePerQuiz % 60).toString().padStart(2, '0')}`}
+            gradient="bg-gradient-to-br from-indigo-500 to-purple-500"
+          />
+          <StatCard
+            icon={Star}
+            label="Average Score"
+            value={averageScore}
+            subtext="points per quiz"
+            gradient="bg-gradient-to-br from-amber-500 to-yellow-500"
+          />
+          <StatCard
+            icon={CheckCircle}
+            label="Perfect Scores"
+            value={perfectScores}
+            subtext={`${perfectScoreRate}% rate`}
+            gradient="bg-gradient-to-br from-emerald-500 to-green-500"
+          />
+          <StatCard
+            icon={Activity}
+            label="Total Time"
+            value={`${Math.floor(totalTimeSpent / 60)}m`}
+            subtext={`${allResults.length} quizzes`}
+            gradient="bg-gradient-to-br from-cyan-500 to-blue-500"
+          />
+        </motion.div>
+      )}
+
       {/* Charts */}
       {chartData.length > 0 && (
         <motion.div
@@ -338,13 +376,15 @@ export default function Stats() {
                         border: "1px solid hsl(var(--border))",
                         borderRadius: "0.5rem",
                       }}
+                      formatter={(value: number) => [`${value}%`, "Accuracy"]}
                     />
                     <Line 
                       type="monotone" 
                       dataKey="accuracy" 
                       stroke="hsl(var(--primary))"
                       strokeWidth={2}
-                      dot={{ fill: "hsl(var(--primary))" }}
+                      dot={{ fill: "hsl(var(--primary))", r: 4 }}
+                      name="Accuracy"
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -372,13 +412,146 @@ export default function Stats() {
                         border: "1px solid hsl(var(--border))",
                         borderRadius: "0.5rem",
                       }}
+                      formatter={(value: number) => [value, "Score"]}
                     />
                     <Bar 
                       dataKey="score" 
                       fill="hsl(var(--primary))"
                       radius={[4, 4, 0, 0]}
+                      name="Score"
                     />
                   </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+
+      {/* Additional Charts */}
+      {allResults.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35 }}
+          className="mb-8 grid gap-6 lg:grid-cols-2"
+        >
+          {xpProgression.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Zap className="h-5 w-5" />
+                  XP Progression
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={xpProgression}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <XAxis dataKey="name" className="text-xs" />
+                      <YAxis className="text-xs" />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: "hsl(var(--card))",
+                          border: "1px solid hsl(var(--border))",
+                          borderRadius: "0.5rem",
+                        }}
+                        formatter={(value: number) => [value, "Total XP"]}
+                      />
+                      <Area 
+                        type="monotone" 
+                        dataKey="xp" 
+                        stroke="hsl(var(--primary))"
+                        fill="hsl(var(--primary))"
+                        fillOpacity={0.3}
+                        name="Total XP"
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {timeData.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="h-5 w-5" />
+                  Time Spent per Quiz
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={timeData}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <XAxis dataKey="name" className="text-xs" />
+                      <YAxis className="text-xs" />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: "hsl(var(--card))",
+                          border: "1px solid hsl(var(--border))",
+                          borderRadius: "0.5rem",
+                        }}
+                        formatter={(value: number) => {
+                          const mins = Math.floor(value / 60);
+                          const secs = value % 60;
+                          return [`${mins}:${secs.toString().padStart(2, '0')}`, "Time"];
+                        }}
+                      />
+                      <Bar 
+                        dataKey="time" 
+                        fill="hsl(var(--primary))"
+                        radius={[4, 4, 0, 0]}
+                        name="Time (seconds)"
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </motion.div>
+      )}
+
+      {/* Score Distribution */}
+      {allResults.length > 0 && scoreDistribution.some(d => d.value > 0) && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="mb-8"
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                Score Distribution
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={scoreDistribution.filter(d => d.value > 0)}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, value, percent }) => `${name}: ${value} (${(percent * 100).toFixed(0)}%)`}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {scoreDistribution.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
                 </ResponsiveContainer>
               </div>
             </CardContent>
