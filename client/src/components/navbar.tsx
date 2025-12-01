@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Sparkles, Library, BarChart3, Trophy, Plus, Menu, X, LogOut } from "lucide-react";
+import { Sparkles, Library, BarChart3, Trophy, Plus, Menu, X, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "./theme-toggle";
 import { useAuth } from "@/lib/auth-context";
@@ -68,6 +68,11 @@ export function Navbar() {
                   Create Quiz
                 </Button>
               </Link>
+              <Link href="/profile" className="hidden sm:block">
+                <Button variant="ghost" size="icon" data-testid="button-profile">
+                  <User className="h-4 w-4" />
+                </Button>
+              </Link>
               <Button
                 variant="ghost"
                 size="icon"
@@ -127,6 +132,18 @@ export function Navbar() {
                     </Link>
                   );
                 })}
+                <Link 
+                  href="/profile"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <Button
+                    variant={location === "/profile" ? "secondary" : "ghost"}
+                    className="w-full justify-start gap-2"
+                  >
+                    <User className="h-4 w-4" />
+                    Profile
+                  </Button>
+                </Link>
                 <Link href="/create" onClick={() => setMobileMenuOpen(false)}>
                   <Button className="w-full gap-2">
                     <Plus className="h-4 w-4" />

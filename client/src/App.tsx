@@ -15,6 +15,7 @@ import Edit from "@/pages/edit";
 import Play from "@/pages/play";
 import Stats from "@/pages/stats";
 import Leaderboard from "@/pages/leaderboard";
+import Profile from "@/pages/profile";
 import NotFound from "@/pages/not-found";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
@@ -90,6 +91,11 @@ function Router() {
       <Route path="/leaderboard">
         <ProtectedRouteWrapper>
           <Leaderboard />
+        </ProtectedRouteWrapper>
+      </Route>
+      <Route path="/profile">
+        <ProtectedRouteWrapper>
+          <Profile />
         </ProtectedRouteWrapper>
       </Route>
       <Route component={NotFound} />
