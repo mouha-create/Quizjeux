@@ -325,7 +325,8 @@ export default function Create() {
 
   const createMutation = useMutation({
     mutationFn: async (quiz: InsertQuiz) => {
-      return await apiRequest("POST", "/api/quizzes", quiz);
+      const response = await apiRequest("POST", "/api/quizzes", quiz);
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/quizzes"] });
@@ -333,12 +334,16 @@ export default function Create() {
         title: "Quiz created!",
         description: "Your quiz has been saved successfully.",
       });
-      navigate("/library");
+      // Use setTimeout to ensure toast is shown before navigation
+      setTimeout(() => {
+        navigate("/library");
+      }, 100);
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error("Error creating quiz:", error);
       toast({
         title: "Error",
-        description: "Failed to create quiz. Please try again.",
+        description: error?.message || "Failed to create quiz. Please try again.",
         variant: "destructive",
       });
     },
@@ -356,14 +361,19 @@ export default function Create() {
       return data as { questions: Question[] };
     },
     onSuccess: (data) => {
-      setQuestions(data.questions);
-      toast({
-        title: "Questions generated!",
-        description: `Created ${data.questions.length} questions from AI.`,
-      });
-      setStep(1);
+      if (data && data.questions && Array.isArray(data.questions)) {
+        setQuestions(data.questions);
+        toast({
+          title: "Questions generated!",
+          description: `Created ${data.questions.length} questions from AI.`,
+        });
+        setStep(1);
+      } else {
+        throw new Error("Invalid response format from server");
+      }
     },
     onError: (error: any) => {
+      console.error("Error generating questions:", error);
       const errorMessage = error?.message || "Could not generate questions. Please try again or create manually.";
       toast({
         title: "Generation failed",
@@ -395,7 +405,7 @@ export default function Create() {
     setQuestions(questions.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!title.trim()) {
       toast({
         title: "Title required",
@@ -416,6 +426,26 @@ export default function Create() {
       return;
     }
 
+    // Validate questions before submission
+    const invalidQuestions = questions.filter(q => {
+      if (!q.question.trim()) return true;
+      if (q.type === "multiple" || q.type === "truefalse") {
+        if (!q.correctAnswer || !q.options || q.options.length === 0) return true;
+      }
+      if (q.type === "text" && !q.correctAnswer) return true;
+      return false;
+    });
+
+    if (invalidQuestions.length > 0) {
+      toast({
+        title: "Invalid questions",
+        description: "Please complete all questions before saving.",
+        variant: "destructive",
+      });
+      setStep(1);
+      return;
+    }
+
     const quiz: InsertQuiz = {
       title,
       description,
@@ -425,7 +455,16 @@ export default function Create() {
       timeLimit: enableTimer ? timeLimit : undefined,
     };
 
-    createMutation.mutate(quiz);
+    try {
+      createMutation.mutate(quiz);
+    } catch (error) {
+      console.error("Error in handleSubmit:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const toggleAiType = (type: QuestionType) => {
