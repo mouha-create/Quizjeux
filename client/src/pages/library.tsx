@@ -126,6 +126,27 @@ export default function Library() {
     },
   });
 
+  const { data: favorites = [] } = useQuery<string[]>({
+    queryKey: ["/api/favorites"],
+  });
+
+  const toggleFavoriteMutation = useMutation({
+    mutationFn: async ({ quizId, isFavorite }: { quizId: string; isFavorite: boolean }) => {
+      if (isFavorite) {
+        await apiRequest("DELETE", `/api/favorites/${quizId}`);
+      } else {
+        await apiRequest("POST", `/api/favorites/${quizId}`);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/favorites"] });
+      toast({
+        title: "Favorite updated",
+        description: "Your favorites list has been updated.",
+      });
+    },
+  });
+
   const handleShare = async (quiz: Quiz) => {
     const shareUrl = `${window.location.origin}/play/${quiz.id}`;
     try {
