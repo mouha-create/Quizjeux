@@ -308,6 +308,7 @@ export default function Create() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [step, setStep] = useState(0);
+  const [error, setError] = useState<string | null>(null);
   
   // Form state
   const [title, setTitle] = useState("");
@@ -329,8 +330,17 @@ export default function Create() {
 
   const createMutation = useMutation({
     mutationFn: async (quiz: InsertQuiz) => {
-      const response = await apiRequest("POST", "/api/quizzes", quiz);
-      return await response.json();
+      try {
+        const response = await apiRequest("POST", "/api/quizzes", quiz);
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: "Failed to create quiz" }));
+          throw new Error(errorData.error || "Failed to create quiz");
+        }
+        return await response.json();
+      } catch (error: any) {
+        console.error("Error in createMutation.mutationFn:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/quizzes"] });
@@ -345,9 +355,11 @@ export default function Create() {
     },
     onError: (error: any) => {
       console.error("Error creating quiz:", error);
+      const errorMessage = error?.message || "Failed to create quiz. Please try again.";
+      setError(errorMessage);
       toast({
         title: "Error",
-        description: error?.message || "Failed to create quiz. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -483,6 +495,27 @@ export default function Create() {
       setAiTypes([...aiTypes, type]);
     }
   };
+
+  // Error boundary - show error message if there's a critical error
+  if (error && error.includes("column") || error.includes("database")) {
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+        <Card className="border-destructive">
+          <CardHeader>
+            <CardTitle className="text-destructive">Database Error</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground mb-4">
+              The database schema is being updated. Please refresh the page in a few moments.
+            </p>
+            <Button onClick={() => window.location.reload()}>
+              Refresh Page
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
