@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { 
   Trophy, Target, Brain, Flame, Star, Award, Clock, Zap, 
-  Sparkles, TrendingUp, CheckCircle 
+  Sparkles, TrendingUp, CheckCircle, BarChart3, Activity, Timer
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -10,9 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, 
-  ResponsiveContainer, BarChart, Bar 
+  ResponsiveContainer, BarChart, Bar, AreaChart, Area, PieChart, Pie, Cell,
+  Legend
 } from "recharts";
-import type { UserStats, QuizResult } from "@shared/schema";
+import type { UserStats, QuizResult, Quiz } from "@shared/schema";
 import { badges as badgeDefinitions } from "@shared/schema";
 
 const iconMap: Record<string, typeof Trophy> = {
@@ -150,7 +151,12 @@ export default function Stats() {
   const xpProgress = (userStats.xp / xpForNextLevel) * 100;
 
   // Generate chart data from results
-  const chartData = (results || []).slice(-7).map((result, i) => {
+  const allResults = (results || []).sort((a, b) => 
+    new Date(a.completedAt).getTime() - new Date(b.completedAt).getTime()
+  );
+
+  // Last 7 quizzes for accuracy over time
+  const chartData = allResults.slice(-7).map((result, i) => {
     const acc = result.totalQuestions > 0 && typeof result.correctAnswers === 'number' && typeof result.totalQuestions === 'number'
       ? Math.round((result.correctAnswers / result.totalQuestions) * 100)
       : 0;
@@ -158,8 +164,64 @@ export default function Stats() {
       name: `Quiz ${i + 1}`,
       accuracy: acc,
       score: result.score || 0,
+      timeSpent: result.timeSpent || 0,
+      date: new Date(result.completedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
     };
   });
+
+  // XP progression over time (last 10 quizzes)
+  const xpProgression = allResults.slice(-10).map((result, i) => {
+    const xpGained = result.score || 0;
+    const cumulativeXp = allResults.slice(0, allResults.indexOf(result) + 1)
+      .reduce((sum, r) => sum + (r.score || 0), 0);
+    return {
+      name: `Q${i + 1}`,
+      xp: cumulativeXp,
+      xpGained: xpGained,
+    };
+  });
+
+  // Time spent per quiz
+  const timeData = allResults.slice(-7).map((result, i) => {
+    const minutes = Math.floor((result.timeSpent || 0) / 60);
+    const seconds = (result.timeSpent || 0) % 60;
+    return {
+      name: `Quiz ${i + 1}`,
+      time: result.timeSpent || 0,
+      timeFormatted: `${minutes}:${seconds.toString().padStart(2, '0')}`,
+    };
+  });
+
+  // Score distribution (0-25, 26-50, 51-75, 76-100)
+  const scoreDistribution = [
+    { name: '0-25%', value: 0, color: '#ef4444' },
+    { name: '26-50%', value: 0, color: '#f59e0b' },
+    { name: '51-75%', value: 0, color: '#3b82f6' },
+    { name: '76-100%', value: 0, color: '#10b981' },
+  ];
+  
+  allResults.forEach(result => {
+    const acc = result.totalQuestions > 0
+      ? Math.round((result.correctAnswers / result.totalQuestions) * 100)
+      : 0;
+    if (acc <= 25) scoreDistribution[0].value++;
+    else if (acc <= 50) scoreDistribution[1].value++;
+    else if (acc <= 75) scoreDistribution[2].value++;
+    else scoreDistribution[3].value++;
+  });
+
+  // Calculate advanced stats
+  const totalTimeSpent = allResults.reduce((sum, r) => sum + (r.timeSpent || 0), 0);
+  const averageTimePerQuiz = allResults.length > 0 ? Math.round(totalTimeSpent / allResults.length) : 0;
+  const averageScore = allResults.length > 0
+    ? Math.round(allResults.reduce((sum, r) => sum + (r.score || 0), 0) / allResults.length)
+    : 0;
+  const perfectScores = allResults.filter(r => 
+    r.correctAnswers === r.totalQuestions
+  ).length;
+  const perfectScoreRate = allResults.length > 0
+    ? Math.round((perfectScores / allResults.length) * 100)
+    : 0;
 
   const allBadgeIds = Object.keys(badgeDefinitions);
 
