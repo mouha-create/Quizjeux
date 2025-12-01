@@ -204,10 +204,30 @@ export default function Play() {
       const response = await apiRequest("POST", "/api/quizzes/submit", data);
       const result = await response.json() as QuizResult;
       console.log("Received result from server:", result);
+      console.log("Result type check:", {
+        correctAnswers: typeof result.correctAnswers,
+        totalQuestions: typeof result.totalQuestions,
+        timeSpent: typeof result.timeSpent,
+        score: typeof result.score,
+        values: {
+          correctAnswers: result.correctAnswers,
+          totalQuestions: result.totalQuestions,
+          timeSpent: result.timeSpent,
+          score: result.score,
+        }
+      });
       return result;
     },
     onSuccess: (data) => {
       console.log("Setting result in state:", data);
+      console.log("Data validation:", {
+        hasCorrectAnswers: 'correctAnswers' in data,
+        hasTotalQuestions: 'totalQuestions' in data,
+        hasTimeSpent: 'timeSpent' in data,
+        correctAnswersValue: data.correctAnswers,
+        totalQuestionsValue: data.totalQuestions,
+        timeSpentValue: data.timeSpent,
+      });
       setResult(data);
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
       queryClient.invalidateQueries({ queryKey: ["/api/results"] });
@@ -457,6 +477,9 @@ export default function Play() {
               {/* Time */}
               <p className="mb-6 text-muted-foreground">
                 Completed in {formatTime(result.timeSpent)}
+                {process.env.NODE_ENV === 'development' && (
+                  <span className="ml-2 text-xs">(timeSpent: {result.timeSpent}, type: {typeof result.timeSpent})</span>
+                )}
               </p>
 
               {/* Actions */}
