@@ -333,6 +333,13 @@ export default function Play() {
 
   const handleNext = () => {
     setShowResult(false);
+    
+    // Save current text answer if applicable before moving to next question
+    const question = quiz.questions[currentQuestion];
+    if (question.type === "text" && textAnswer.trim()) {
+      setAnswers({ ...answers, [question.id]: textAnswer.trim() });
+    }
+    
     setTextAnswer("");
     
     if (currentQuestion < quiz.questions.length - 1) {
