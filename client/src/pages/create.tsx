@@ -127,12 +127,7 @@ function QuestionEditor({
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      transition={{ duration: 0.2 }}
-    >
+    <div>
       <Card className="relative" data-testid={`card-question-${index}`}>
         <CardHeader className="flex flex-row items-center gap-2 space-y-0 pb-4">
           <GripVertical className="h-5 w-5 cursor-grab text-muted-foreground" />
@@ -305,7 +300,7 @@ function QuestionEditor({
           </div>
         </CardContent>
       </Card>
-    </motion.div>
+    </div>
   );
 }
 
@@ -642,17 +637,15 @@ export default function Create() {
             exit={{ opacity: 0, x: -20 }}
             className="space-y-4"
           >
-            <AnimatePresence mode="popLayout">
-              {questions.map((question, index) => (
-                <QuestionEditor
-                  key={question.id}
-                  question={question}
-                  index={index}
-                  onUpdate={(q) => updateQuestion(index, q)}
-                  onDelete={() => deleteQuestion(index)}
-                />
-              ))}
-            </AnimatePresence>
+            {questions.map((question, index) => (
+              <QuestionEditor
+                key={question.id}
+                question={question}
+                index={index}
+                onUpdate={(q) => updateQuestion(index, q)}
+                onDelete={() => deleteQuestion(index)}
+              />
+            ))}
 
             <Button
               variant="outline"
