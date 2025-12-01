@@ -165,6 +165,12 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Seed example quizzes if database is empty
+  if (process.env.NODE_ENV === "production" || process.env.SEED_QUIZZES === "true") {
+    const { seedExampleQuizzes } = await import("./seed-quizzes");
+    await seedExampleQuizzes();
+  }
+
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

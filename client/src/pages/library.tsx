@@ -29,8 +29,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { getThemeClasses } from "@/lib/quiz-themes";
-import type { Quiz, QuizTheme } from "@shared/schema";
+import type { Quiz, QuizTheme, DifficultyLevel } from "@shared/schema";
+import { quizThemes, difficultyLevels } from "@shared/schema";
 import { useState } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -76,6 +84,8 @@ function ThemeDot({ theme }: { theme: QuizTheme }) {
 export default function Library() {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedTheme, setSelectedTheme] = useState<QuizTheme | "all">("all");
+  const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyLevel | "all">("all");
   const [deleteQuizId, setDeleteQuizId] = useState<string | null>(null);
 
   const { data: quizzes, isLoading } = useQuery<Quiz[]>({
@@ -131,10 +141,20 @@ export default function Library() {
     }
   };
 
-  const filteredQuizzes = quizzes?.filter((quiz) =>
-    quiz.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    quiz.description?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredQuizzes = quizzes?.filter((quiz) => {
+    // Search filter
+    const matchesSearch = 
+      quiz.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      quiz.description?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // Theme filter
+    const matchesTheme = selectedTheme === "all" || quiz.theme === selectedTheme;
+    
+    // Difficulty filter
+    const matchesDifficulty = selectedDifficulty === "all" || quiz.difficulty === selectedDifficulty;
+    
+    return matchesSearch && matchesTheme && matchesDifficulty;
+  });
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -155,21 +175,63 @@ export default function Library() {
       </div>
 
       {/* Search and Filters */}
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row">
+      <div className="mb-6 space-y-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search quizzes..."
+            placeholder="Search quizzes by title or description..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9"
             data-testid="input-search-quizzes"
           />
         </div>
-        <Button variant="outline" className="gap-2" data-testid="button-filter">
-          <Filter className="h-4 w-4" />
-          Filter
-        </Button>
+        <div className="flex flex-wrap gap-3">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">Filters:</span>
+          </div>
+          <Select value={selectedTheme} onValueChange={(v) => setSelectedTheme(v as QuizTheme | "all")}>
+            <SelectTrigger className="w-[140px]" data-testid="select-theme-filter">
+              <SelectValue placeholder="All Themes" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Themes</SelectItem>
+              {quizThemes.map((theme) => (
+                <SelectItem key={theme} value={theme}>
+                  {theme.charAt(0).toUpperCase() + theme.slice(1)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={selectedDifficulty} onValueChange={(v) => setSelectedDifficulty(v as DifficultyLevel | "all")}>
+            <SelectTrigger className="w-[140px]" data-testid="select-difficulty-filter">
+              <SelectValue placeholder="All Difficulties" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Difficulties</SelectItem>
+              {difficultyLevels.map((difficulty) => (
+                <SelectItem key={difficulty} value={difficulty}>
+                  {difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {(selectedTheme !== "all" || selectedDifficulty !== "all" || searchQuery) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setSelectedTheme("all");
+                setSelectedDifficulty("all");
+                setSearchQuery("");
+              }}
+              className="text-muted-foreground"
+            >
+              Clear filters
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Quiz Grid */}
