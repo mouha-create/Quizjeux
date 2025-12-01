@@ -497,7 +497,7 @@ export default function Create() {
   };
 
   // Error boundary - show error message if there's a critical error
-  if (error && error.includes("column") || error.includes("database")) {
+  if (error && (error.includes("column") || error.includes("database"))) {
     return (
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
         <Card className="border-destructive">
@@ -517,8 +517,9 @@ export default function Create() {
     );
   }
 
-  return (
-    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+  try {
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
