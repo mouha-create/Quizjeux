@@ -10,6 +10,11 @@ import { sql } from "drizzle-orm";
 const app = express();
 const httpServer = createServer(app);
 
+// Trust proxy for Render (MUST be before session middleware)
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
+
 declare module "express-session" {
   interface SessionData {
     userId?: string;
