@@ -26,6 +26,22 @@ export const questionSchema = z.object({
 
 export type Question = z.infer<typeof questionSchema>;
 
+// Quiz categories
+export const quizCategories = [
+  "Science",
+  "History",
+  "Geography",
+  "Mathematics",
+  "Literature",
+  "Sports",
+  "Technology",
+  "Art",
+  "Music",
+  "General Knowledge",
+] as const;
+
+export type QuizCategory = typeof quizCategories[number];
+
 // Quiz schema
 export const quizSchema = z.object({
   id: z.string(),
@@ -35,6 +51,10 @@ export const quizSchema = z.object({
   theme: z.enum(quizThemes).default("purple"),
   difficulty: z.enum(difficultyLevels).default("intermediate"),
   timeLimit: z.number().optional(),
+  category: z.enum(quizCategories).optional(),
+  tags: z.array(z.string()).default([]),
+  isPublic: z.boolean().default(true),
+  userId: z.string().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
   plays: z.number().default(0),
@@ -158,7 +178,7 @@ export const authResponseSchema = z.object({
 export type AuthResponse = z.infer<typeof authResponseSchema>;
 
 // ============ DRIZZLE ORM TABLES ============
-import { pgTable, text, integer, timestamp, varchar, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, timestamp, varchar, jsonb, boolean } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
 export const usersTable = pgTable("users", {
@@ -177,6 +197,10 @@ export const quizzesTable = pgTable("quizzes", {
   theme: varchar("theme").default("purple"),
   difficulty: varchar("difficulty").default("intermediate"),
   timeLimit: integer("time_limit"),
+  category: varchar("category"),
+  tags: text("tags").array().default(sql`ARRAY[]::text[]`),
+  isPublic: boolean("is_public").default(true),
+  userId: varchar("user_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   plays: integer("plays").default(0),
@@ -210,6 +234,15 @@ export const userStatsTable = pgTable("user_stats", {
   badges: text("badges").array().default(sql`ARRAY[]::text[]`),
   quizHistory: text("quiz_history").array().default(sql`ARRAY[]::text[]`),
 });
+
+// User favorites table
+export const userFavoritesTable = pgTable("user_favorites", {
+  userId: varchar("user_id").notNull(),
+  quizId: varchar("quiz_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  pk: sql`PRIMARY KEY (${table.userId}, ${table.quizId})`,
+}));
 
 // Session table for connect-pg-simple
 export const userSessionsTable = pgTable("user_sessions", {

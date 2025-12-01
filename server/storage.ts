@@ -4,8 +4,8 @@ import type {
 import { badges } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./database";
-import { usersTable, quizzesTable, resultsTable, userStatsTable } from "@shared/schema";
-import { eq, desc, sql } from "drizzle-orm";
+import { usersTable, quizzesTable, resultsTable, userStatsTable, userFavoritesTable } from "@shared/schema";
+import { eq, desc, sql, and } from "drizzle-orm";
 
 export interface IStorage {
   // Quiz operations
@@ -33,13 +33,26 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserById(id: string): Promise<User | undefined>;
   createUser(username: string, email: string, hashedPassword: string): Promise<User>;
+  
+  // Favorites
+  addFavorite(userId: string, quizId: string): Promise<void>;
+  removeFavorite(userId: string, quizId: string): Promise<void>;
+  getFavorites(userId: string): Promise<string[]>;
 }
 
 export class DatabaseStorage implements IStorage {
-  async getQuizzes(): Promise<Quiz[]> {
+  async getQuizzes(userId?: string): Promise<Quiz[]> {
     try {
       console.log("Fetching all quizzes from database...");
-      const quizList = await db.select().from(quizzesTable);
+      // Only get public quizzes or quizzes owned by the user
+      let quizList;
+      if (userId) {
+        quizList = await db.select().from(quizzesTable)
+          .where(sql`${quizzesTable.isPublic} = true OR ${quizzesTable.userId} = ${userId}`);
+      } else {
+        quizList = await db.select().from(quizzesTable)
+          .where(eq(quizzesTable.isPublic, true));
+      }
       console.log(`Found ${quizList.length} quiz(es) in database`);
       
       // Calculate actual plays count from results for each quiz
@@ -59,6 +72,10 @@ export class DatabaseStorage implements IStorage {
           theme: (q.theme as any) || "purple",
           difficulty: (q.difficulty as any) || "intermediate",
           timeLimit: q.timeLimit || undefined,
+          category: (q.category as any) || undefined,
+          tags: (q.tags as string[]) || [],
+          isPublic: q.isPublic !== false,
+          userId: q.userId || undefined,
           createdAt: q.createdAt?.toISOString() || new Date().toISOString(),
           updatedAt: q.updatedAt?.toISOString() || new Date().toISOString(),
           plays: actualPlays,
@@ -108,6 +125,10 @@ export class DatabaseStorage implements IStorage {
         theme: quiz.theme,
         difficulty: quiz.difficulty,
         timeLimit: quiz.timeLimit,
+        category: quiz.category,
+        tags: quiz.tags || [],
+        isPublic: quiz.isPublic !== false,
+        userId: quiz.userId,
         createdAt: now,
         updatedAt: now,
       });
@@ -120,6 +141,10 @@ export class DatabaseStorage implements IStorage {
         theme: quiz.theme,
         difficulty: quiz.difficulty,
         timeLimit: quiz.timeLimit,
+        category: quiz.category,
+        tags: quiz.tags || [],
+        isPublic: quiz.isPublic !== false,
+        userId: quiz.userId,
         createdAt: now.toISOString(),
         updatedAt: now.toISOString(),
         plays: 0,
@@ -393,6 +418,44 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Error creating user:", error);
       throw error;
+    }
+  }
+
+  async addFavorite(userId: string, quizId: string): Promise<void> {
+    try {
+      await db.insert(userFavoritesTable).values({
+        userId,
+        quizId,
+        createdAt: new Date(),
+      }).onConflictDoNothing();
+    } catch (error) {
+      console.error("Error adding favorite:", error);
+      throw error;
+    }
+  }
+
+  async removeFavorite(userId: string, quizId: string): Promise<void> {
+    try {
+      await db.delete(userFavoritesTable)
+        .where(and(
+          eq(userFavoritesTable.userId, userId),
+          eq(userFavoritesTable.quizId, quizId)
+        ));
+    } catch (error) {
+      console.error("Error removing favorite:", error);
+      throw error;
+    }
+  }
+
+  async getFavorites(userId: string): Promise<string[]> {
+    try {
+      const favorites = await db.select({ quizId: userFavoritesTable.quizId })
+        .from(userFavoritesTable)
+        .where(eq(userFavoritesTable.userId, userId));
+      return favorites.map(f => f.quizId);
+    } catch (error) {
+      console.error("Error getting favorites:", error);
+      return [];
     }
   }
 

@@ -128,7 +128,8 @@ export async function registerRoutes(
   // Redirect common typos to /api/quizzes
   const handleGetQuizzes = async (req: any, res: any) => {
     try {
-      const quizzes = await storage.getQuizzes();
+      const userId = req.session?.userId;
+      const quizzes = await storage.getQuizzes(userId);
       res.json(quizzes);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch quizzes" });
@@ -172,7 +173,11 @@ export async function registerRoutes(
       }
 
       console.log("Creating quiz with title:", validationResult.data.title);
-      const quiz = await storage.createQuiz(validationResult.data);
+      const quizData = {
+        ...validationResult.data,
+        userId: req.session.userId,
+      };
+      const quiz = await storage.createQuiz(quizData);
       console.log("Quiz created successfully with ID:", quiz.id);
       
       // Award "Creator" badge if user hasn't earned it yet
@@ -500,6 +505,48 @@ export async function registerRoutes(
       res.json(leaderboard);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch leaderboard" });
+    }
+  });
+
+  // Get favorites
+  app.get("/api/favorites", async (req, res) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      const favorites = await storage.getFavorites(req.session.userId);
+      res.json(favorites);
+    } catch (error) {
+      console.error("Error fetching favorites:", error);
+      res.status(500).json({ error: "Failed to fetch favorites" });
+    }
+  });
+
+  // Add favorite
+  app.post("/api/favorites/:quizId", async (req, res) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      await storage.addFavorite(req.session.userId, req.params.quizId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error adding favorite:", error);
+      res.status(500).json({ error: "Failed to add favorite" });
+    }
+  });
+
+  // Remove favorite
+  app.delete("/api/favorites/:quizId", async (req, res) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      await storage.removeFavorite(req.session.userId, req.params.quizId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error removing favorite:", error);
+      res.status(500).json({ error: "Failed to remove favorite" });
     }
   });
 
