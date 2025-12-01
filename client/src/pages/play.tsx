@@ -237,14 +237,38 @@ export default function Play() {
   const handleComplete = useCallback(() => {
     if (!quiz) return;
     
+    // Ensure all answers are collected, including current text answer if applicable
+    const currentQ = quiz.questions[currentQuestion];
+    const finalAnswers = { ...answers };
+    
+    // If current question is text type and has an answer, include it
+    if (currentQ?.type === "text" && textAnswer.trim()) {
+      finalAnswers[currentQ.id] = textAnswer.trim();
+    }
+    
+    // Check if all questions have answers
+    const unansweredQuestions = quiz.questions.filter(q => !finalAnswers[q.id] || finalAnswers[q.id] === "");
+    if (unansweredQuestions.length > 0) {
+      toast({
+        title: "Incomplete Quiz",
+        description: `Please answer all ${unansweredQuestions.length} remaining question(s).`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const timeSpent = Math.floor((Date.now() - startTime) / 1000);
+    console.log("Submitting quiz with answers:", finalAnswers);
+    console.log("Time spent:", timeSpent);
+    console.log("Quiz questions:", quiz.questions.map(q => ({ id: q.id, type: q.type, correctAnswer: q.correctAnswer })));
+    
     setQuizComplete(true);
     submitMutation.mutate({
       quizId: quiz.id,
-      answers,
+      answers: finalAnswers,
       timeSpent,
     });
-  }, [quiz, answers, startTime]);
+  }, [quiz, answers, textAnswer, currentQuestion, startTime, submitMutation, toast]);
 
   if (isLoading) return <QuizLoading />;
   
@@ -334,17 +358,29 @@ export default function Play() {
     }
   };
 
-  const formatTime = (seconds: number) => {
+  const formatTime = (seconds: number | null | undefined) => {
+    if (seconds === null || seconds === undefined || isNaN(seconds) || seconds < 0) {
+      return "0:00";
+    }
     const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
+    const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
   // Results Screen
   if (quizComplete && result) {
-    const accuracy = result.totalQuestions > 0 && typeof result.correctAnswers === 'number' && typeof result.totalQuestions === 'number'
+    console.log("Result data:", result);
+    console.log("correctAnswers:", result.correctAnswers, "totalQuestions:", result.totalQuestions);
+    
+    const accuracy = result.totalQuestions > 0 && 
+                     typeof result.correctAnswers === 'number' && 
+                     typeof result.totalQuestions === 'number' &&
+                     !isNaN(result.correctAnswers) &&
+                     !isNaN(result.totalQuestions)
       ? Math.round((result.correctAnswers / result.totalQuestions) * 100)
       : 0;
+    
+    console.log("Calculated accuracy:", accuracy);
     
     return (
       <div className={`min-h-screen ${themeGradient} p-4`}>

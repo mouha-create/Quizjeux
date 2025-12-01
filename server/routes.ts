@@ -305,12 +305,27 @@ export async function registerRoutes(
 
       for (const question of quiz.questions) {
         const userAnswer = answers[question.id];
-        const isCorrect = Array.isArray(question.correctAnswer)
-          ? JSON.stringify(userAnswer) === JSON.stringify(question.correctAnswer)
-          : userAnswer === question.correctAnswer ||
-            (typeof userAnswer === "string" && 
-             typeof question.correctAnswer === "string" &&
-             userAnswer.toLowerCase() === question.correctAnswer.toLowerCase());
+        
+        // Log for debugging
+        console.log(`Question ${question.id}: userAnswer="${userAnswer}", correctAnswer="${question.correctAnswer}", type=${typeof userAnswer}`);
+        
+        let isCorrect = false;
+        
+        if (Array.isArray(question.correctAnswer)) {
+          // For ranking questions
+          isCorrect = JSON.stringify(userAnswer) === JSON.stringify(question.correctAnswer);
+        } else if (userAnswer === undefined || userAnswer === null || userAnswer === "") {
+          // No answer provided
+          isCorrect = false;
+        } else if (typeof question.correctAnswer === "string" && typeof userAnswer === "string") {
+          // String comparison (case-insensitive, trimmed)
+          isCorrect = userAnswer.trim().toLowerCase() === question.correctAnswer.trim().toLowerCase();
+        } else {
+          // Direct comparison
+          isCorrect = userAnswer === question.correctAnswer;
+        }
+
+        console.log(`Question ${question.id} isCorrect: ${isCorrect}`);
 
         if (isCorrect) {
           correctAnswers++;
@@ -323,6 +338,8 @@ export async function registerRoutes(
           currentStreak = 0;
         }
       }
+      
+      console.log(`Final calculation: correctAnswers=${correctAnswers}, totalQuestions=${quiz.questions.length}, score=${totalPoints}`);
 
       const result: Omit<QuizResult, "id"> = {
         quizId,
