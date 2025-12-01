@@ -41,19 +41,30 @@ export class DatabaseStorage implements IStorage {
       console.log("Fetching all quizzes from database...");
       const quizList = await db.select().from(quizzesTable);
       console.log(`Found ${quizList.length} quiz(es) in database`);
-      return quizList.map(q => ({
-        id: q.id,
-        title: q.title,
-        description: q.description || undefined,
-        questions: (q.questions as any) || [],
-        theme: (q.theme as any) || "purple",
-        difficulty: (q.difficulty as any) || "intermediate",
-        timeLimit: q.timeLimit || undefined,
-        createdAt: q.createdAt?.toISOString() || new Date().toISOString(),
-        updatedAt: q.updatedAt?.toISOString() || new Date().toISOString(),
-        plays: q.plays || 0,
-        averageScore: q.averageScore || 0,
-      }));
+      
+      // Calculate actual plays count from results for each quiz
+      const quizPlaysMap = new Map<string, number>();
+      const allResults = await db.select({ quizId: resultsTable.quizId }).from(resultsTable);
+      allResults.forEach(r => {
+        quizPlaysMap.set(r.quizId, (quizPlaysMap.get(r.quizId) || 0) + 1);
+      });
+      
+      return quizList.map(q => {
+        const actualPlays = quizPlaysMap.get(q.id) || 0;
+        return {
+          id: q.id,
+          title: q.title,
+          description: q.description || undefined,
+          questions: (q.questions as any) || [],
+          theme: (q.theme as any) || "purple",
+          difficulty: (q.difficulty as any) || "intermediate",
+          timeLimit: q.timeLimit || undefined,
+          createdAt: q.createdAt?.toISOString() || new Date().toISOString(),
+          updatedAt: q.updatedAt?.toISOString() || new Date().toISOString(),
+          plays: actualPlays,
+          averageScore: q.averageScore || 0,
+        };
+      });
     } catch (error: any) {
       console.error("Error getting quizzes:", error);
       console.error("Error details:", error?.message, error?.stack);
