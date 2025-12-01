@@ -382,8 +382,9 @@ export async function registerRoutes(
       const newTotalQuestions = (currentStats.totalQuestions || 0) + result.totalQuestions;
       const newCorrectAnswers = (currentStats.correctAnswers || 0) + result.correctAnswers;
       const newTotalPoints = (currentStats.totalPoints || 0) + result.score;
-      const newXp = (currentStats.xp || 0) + result.score + (accuracy >= 80 ? 50 : 0); // Bonus XP for good accuracy
-      const newLevel = Math.floor(newXp / 1000) + 1;
+      const bonusXp = accuracy >= 80 ? 50 : 0; // Bonus XP for good accuracy
+      const newXp = (currentStats.xp || 0) + result.score + bonusXp;
+      const newLevel = Math.max(1, Math.floor(newXp / 1000) + 1);
       const newBestStreak = Math.max(currentStats.bestStreak || 0, maxStreak);
       
       // Calculate new stats object for badge calculation
