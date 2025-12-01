@@ -128,10 +128,10 @@ function QuestionEditor({
 
   return (
     <motion.div
-      layout
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.2 }}
     >
       <Card className="relative" data-testid={`card-question-${index}`}>
         <CardHeader className="flex flex-row items-center gap-2 space-y-0 pb-4">
@@ -183,7 +183,7 @@ function QuestionEditor({
               <Label>Answer Options</Label>
               <div className="mt-1.5 space-y-2">
                 {(question.options || []).map((option, i) => (
-                  <div key={i} className="flex items-center gap-2">
+                  <div key={`option-${index}-${i}`} className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() => updateField("correctAnswer", option)}
@@ -250,7 +250,7 @@ function QuestionEditor({
               <Label>Items to Rank (in correct order)</Label>
               <div className="mt-1.5 space-y-2">
                 {(Array.isArray(question.correctAnswer) ? question.correctAnswer : []).map((item, i) => (
-                  <div key={i} className="flex items-center gap-2">
+                  <div key={`ranking-item-${index}-${i}`} className="flex items-center gap-2">
                     <span className="flex h-8 w-8 items-center justify-center rounded bg-muted text-sm font-medium">
                       {i + 1}
                     </span>
@@ -642,7 +642,7 @@ export default function Create() {
             exit={{ opacity: 0, x: -20 }}
             className="space-y-4"
           >
-            <AnimatePresence>
+            <AnimatePresence mode="popLayout">
               {questions.map((question, index) => (
                 <QuestionEditor
                   key={question.id}
