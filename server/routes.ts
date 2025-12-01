@@ -75,8 +75,18 @@ export async function registerRoutes(
       if (!req.session?.userId) {
         return res.status(401).json({ error: "Not authenticated" });
       }
-      res.json({ user: { id: req.session.userId, username: "User", email: "user@example.com" } });
+      
+      // Get user from database
+      const user = await storage.getUserById(req.session.userId);
+      if (!user) {
+        // Session exists but user not found - clear session
+        req.session.destroy(() => {});
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      res.json({ user });
     } catch (error) {
+      console.error("Error fetching user:", error);
       res.status(500).json({ error: "Failed to fetch user" });
     }
   });

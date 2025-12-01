@@ -30,6 +30,7 @@ export interface IStorage {
   // User auth
   getUserByUsername(username: string): Promise<{ user: User; password: string } | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
+  getUserById(id: string): Promise<User | undefined>;
   createUser(username: string, email: string, hashedPassword: string): Promise<User>;
 }
 
@@ -315,6 +316,22 @@ export class DatabaseStorage implements IStorage {
       };
     } catch (error) {
       console.error("Error getting user by email:", error);
+      return undefined;
+    }
+  }
+
+  async getUserById(id: string): Promise<User | undefined> {
+    try {
+      const [user] = await db.select().from(usersTable).where(eq(usersTable.id, id));
+      if (!user) return undefined;
+      return {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        createdAt: user.createdAt?.toISOString() || new Date().toISOString(),
+      };
+    } catch (error) {
+      console.error("Error getting user by id:", error);
       return undefined;
     }
   }

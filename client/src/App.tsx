@@ -1,4 +1,5 @@
-import { Switch, Route } from "wouter";
+import { useEffect } from "react";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -31,24 +32,66 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   return <Component />;
 }
 
-function Router() {
-  const { user } = useAuth();
+function ProtectedRouteWrapper({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAuth();
+  const [, setLocation] = useLocation();
 
+  useEffect(() => {
+    if (!isLoading && !user) {
+      setLocation("/login");
+    }
+  }, [user, isLoading, setLocation]);
+
+  if (isLoading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
+
+  if (!user) {
+    return null;
+  }
+
+  return <>{children}</>;
+}
+
+function Router() {
+  const { user, isLoading } = useAuth();
+
+  // Always define routes, but protect authenticated routes
   return (
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
-      {user && (
-        <>
-          <Route path="/library" component={Library} />
-          <Route path="/create" component={Create} />
-          <Route path="/edit/:id" component={Edit} />
-          <Route path="/play/:id" component={Play} />
-          <Route path="/stats" component={Stats} />
-          <Route path="/leaderboard" component={Leaderboard} />
-        </>
-      )}
+      <Route path="/library">
+        <ProtectedRouteWrapper>
+          <Library />
+        </ProtectedRouteWrapper>
+      </Route>
+      <Route path="/create">
+        <ProtectedRouteWrapper>
+          <Create />
+        </ProtectedRouteWrapper>
+      </Route>
+      <Route path="/edit/:id">
+        <ProtectedRouteWrapper>
+          <Edit />
+        </ProtectedRouteWrapper>
+      </Route>
+      <Route path="/play/:id">
+        <ProtectedRouteWrapper>
+          <Play />
+        </ProtectedRouteWrapper>
+      </Route>
+      <Route path="/stats">
+        <ProtectedRouteWrapper>
+          <Stats />
+        </ProtectedRouteWrapper>
+      </Route>
+      <Route path="/leaderboard">
+        <ProtectedRouteWrapper>
+          <Leaderboard />
+        </ProtectedRouteWrapper>
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );

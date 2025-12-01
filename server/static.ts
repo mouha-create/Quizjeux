@@ -15,7 +15,8 @@ export function serveStatic(app: Express) {
 
   // SPA fallback: serve index.html for all non-API routes
   // This must be after all API routes and static file serving
-  app.get("*", (req: Request, res: Response, next: NextFunction) => {
+  // Use app.use instead of app.get to catch all HTTP methods
+  app.use("*", (req: Request, res: Response, next: NextFunction) => {
     // Skip API routes
     if (req.path.startsWith("/api")) {
       return next();
@@ -23,6 +24,11 @@ export function serveStatic(app: Express) {
     
     // Skip requests for static assets (they should be handled by express.static)
     if (req.path.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|map)$/)) {
+      return next();
+    }
+    
+    // Only handle GET requests for SPA routing
+    if (req.method !== "GET") {
       return next();
     }
     
