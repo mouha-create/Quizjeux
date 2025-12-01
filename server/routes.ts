@@ -70,6 +70,8 @@ export async function registerRoutes(
           return res.status(500).json({ error: "Login failed" });
         }
         console.log("Session saved, userId:", req.session.userId, "sessionID:", req.sessionID);
+        console.log("Cookie header:", req.headers.cookie);
+        console.log("Set-Cookie will be:", res.getHeader("Set-Cookie"));
         res.json({ user: { id: userEntry.user.id, username: userEntry.user.username, email: userEntry.user.email } });
       });
     } catch (error) {
@@ -89,6 +91,7 @@ export async function registerRoutes(
   app.get("/api/auth/me", async (req, res) => {
     try {
       console.log("GET /api/auth/me - sessionID:", req.sessionID, "userId:", req.session?.userId);
+      console.log("Cookie header received:", req.headers.cookie);
       if (!req.session?.userId) {
         console.log("No userId in session");
         return res.status(401).json({ error: "Not authenticated" });

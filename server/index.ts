@@ -82,7 +82,7 @@ app.use(
       secure: process.env.NODE_ENV === "production", // Secure cookies in production (HTTPS required)
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // Allow cross-site cookies on Render (requires secure: true)
+      sameSite: process.env.NODE_ENV === "production" ? ("none" as const) : ("lax" as const), // Allow cross-site cookies on Render (requires secure: true)
       domain: undefined, // Let browser set domain automatically
       path: "/", // Ensure cookie is available for all paths
     },
