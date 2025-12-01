@@ -409,14 +409,26 @@ export default function Play() {
   // Results Screen
   if (quizComplete && result) {
     console.log("Result data:", result);
-    console.log("correctAnswers:", result.correctAnswers, "totalQuestions:", result.totalQuestions);
+    console.log("Result keys:", Object.keys(result));
+    console.log("correctAnswers:", result.correctAnswers, "type:", typeof result.correctAnswers);
+    console.log("totalQuestions:", result.totalQuestions, "type:", typeof result.totalQuestions);
+    console.log("timeSpent:", result.timeSpent, "type:", typeof result.timeSpent);
     
-    const accuracy = result.totalQuestions > 0 && 
-                     typeof result.correctAnswers === 'number' && 
-                     typeof result.totalQuestions === 'number' &&
-                     !isNaN(result.correctAnswers) &&
-                     !isNaN(result.totalQuestions)
-      ? Math.round((result.correctAnswers / result.totalQuestions) * 100)
+    // Ensure values are numbers
+    const correctAnswersNum = Number(result.correctAnswers) || 0;
+    const totalQuestionsNum = Number(result.totalQuestions) || 0;
+    const timeSpentNum = Number(result.timeSpent) || 0;
+    
+    console.log("After conversion:", {
+      correctAnswers: correctAnswersNum,
+      totalQuestions: totalQuestionsNum,
+      timeSpent: timeSpentNum,
+    });
+    
+    const accuracy = totalQuestionsNum > 0 && 
+                     !isNaN(correctAnswersNum) &&
+                     !isNaN(totalQuestionsNum)
+      ? Math.round((correctAnswersNum / totalQuestionsNum) * 100)
       : 0;
     
     console.log("Calculated accuracy:", accuracy);
@@ -459,27 +471,24 @@ export default function Play() {
               <div className="mb-8 grid grid-cols-3 gap-4">
                 <div className="rounded-lg bg-muted p-4">
                   <CheckCircle className="mx-auto mb-2 h-6 w-6 text-green-500" />
-                  <p className="font-heading text-2xl font-bold">{result.correctAnswers}</p>
+                  <p className="font-heading text-2xl font-bold" translate="no">{Number(result.correctAnswers) || 0}</p>
                   <p className="text-xs text-muted-foreground">Correct</p>
                 </div>
                 <div className="rounded-lg bg-muted p-4">
                   <Target className="mx-auto mb-2 h-6 w-6 text-blue-500" />
-                  <p className="font-heading text-2xl font-bold">{result.score}</p>
+                  <p className="font-heading text-2xl font-bold" translate="no">{Number(result.score) || 0}</p>
                   <p className="text-xs text-muted-foreground">Points</p>
                 </div>
                 <div className="rounded-lg bg-muted p-4">
                   <Flame className="mx-auto mb-2 h-6 w-6 text-orange-500" />
-                  <p className="font-heading text-2xl font-bold">{result.streak}</p>
+                  <p className="font-heading text-2xl font-bold" translate="no">{Number(result.streak) || 0}</p>
                   <p className="text-xs text-muted-foreground">Best Streak</p>
                 </div>
               </div>
 
               {/* Time */}
               <p className="mb-6 text-muted-foreground">
-                Completed in {formatTime(result.timeSpent)}
-                {process.env.NODE_ENV === 'development' && (
-                  <span className="ml-2 text-xs">(timeSpent: {result.timeSpent}, type: {typeof result.timeSpent})</span>
-                )}
+                Completed in {formatTime(Number(result.timeSpent) || 0)}
               </p>
 
               {/* Actions */}
