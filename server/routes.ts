@@ -35,7 +35,14 @@ export async function registerRoutes(
       const user = await storage.createUser(username, email, hashedPassword);
 
       req.session.userId = user.id;
-      res.status(201).json({ user: { id: user.id, username: user.username, email: user.email } });
+      // Save session explicitly
+      req.session.save((err) => {
+        if (err) {
+          console.error("Error saving session:", err);
+          return res.status(500).json({ error: "Signup failed" });
+        }
+        res.status(201).json({ user: { id: user.id, username: user.username, email: user.email } });
+      });
     } catch (error) {
       res.status(500).json({ error: "Signup failed" });
     }
@@ -56,7 +63,14 @@ export async function registerRoutes(
       }
 
       req.session.userId = userEntry.user.id;
-      res.json({ user: { id: userEntry.user.id, username: userEntry.user.username, email: userEntry.user.email } });
+      // Save session explicitly
+      req.session.save((err) => {
+        if (err) {
+          console.error("Error saving session:", err);
+          return res.status(500).json({ error: "Login failed" });
+        }
+        res.json({ user: { id: userEntry.user.id, username: userEntry.user.username, email: userEntry.user.email } });
+      });
     } catch (error) {
       res.status(500).json({ error: "Login failed" });
     }

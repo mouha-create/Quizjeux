@@ -32,13 +32,15 @@ app.use(express.urlencoded({ extended: false }));
 app.use(
   session({
     secret: process.env.SESSION_SECRET || "dev-secret-key",
-    resave: false,
-    saveUninitialized: false,
+    resave: true, // Save session even if not modified
+    saveUninitialized: true, // Save uninitialized sessions
     cookie: {
-      secure: process.env.NODE_ENV === "production",
+      secure: process.env.NODE_ENV === "production" && process.env.RENDER === "true" ? true : false, // Only secure on Render HTTPS
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // Allow cross-site cookies on Render
     },
+    name: "quizSession", // Custom session name
   }),
 );
 
