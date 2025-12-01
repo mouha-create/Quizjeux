@@ -189,18 +189,20 @@ export class DatabaseStorage implements IStorage {
     try {
       const [result] = await db.select().from(resultsTable).where(eq(resultsTable.id, id));
       if (!result) return undefined;
-      return {
+      const quizResult = {
         id: result.id,
         quizId: result.quizId,
-        score: result.score,
-        totalPoints: result.totalPoints,
-        correctAnswers: result.correctAnswers,
-        totalQuestions: result.totalQuestions,
-        timeSpent: result.timeSpent,
+        score: result.score || 0,
+        totalPoints: result.totalPoints || 0,
+        correctAnswers: result.correctAnswers || 0,
+        totalQuestions: result.totalQuestions || 0,
+        timeSpent: result.timeSpent || 0,
         answers: (result.answers as any) || {},
         completedAt: result.completedAt?.toISOString() || new Date().toISOString(),
         streak: result.streak || 0,
       };
+      console.log(`Retrieved result ${id}:`, quizResult);
+      return quizResult;
     } catch (error) {
       console.error("Error getting result:", error);
       return undefined;
@@ -210,20 +212,37 @@ export class DatabaseStorage implements IStorage {
   async createResult(result: Omit<QuizResult, "id">, userId: string): Promise<QuizResult> {
     try {
       const id = randomUUID();
-      await db.insert(resultsTable).values({
+      const savedResult = {
         id,
         quizId: result.quizId,
         userId,
-        score: result.score,
-        totalPoints: result.totalPoints,
-        correctAnswers: result.correctAnswers,
-        totalQuestions: result.totalQuestions,
-        timeSpent: result.timeSpent,
+        score: result.score || 0,
+        totalPoints: result.totalPoints || 0,
+        correctAnswers: result.correctAnswers || 0,
+        totalQuestions: result.totalQuestions || 0,
+        timeSpent: result.timeSpent || 0,
         answers: result.answers as any,
         completedAt: new Date(),
-        streak: result.streak,
-      });
-      return { ...result, id };
+        streak: result.streak || 0,
+      };
+      
+      await db.insert(resultsTable).values(savedResult);
+      
+      const quizResult: QuizResult = {
+        id,
+        quizId: result.quizId,
+        score: savedResult.score,
+        totalPoints: savedResult.totalPoints,
+        correctAnswers: savedResult.correctAnswers,
+        totalQuestions: savedResult.totalQuestions,
+        timeSpent: savedResult.timeSpent,
+        answers: result.answers,
+        completedAt: savedResult.completedAt.toISOString(),
+        streak: savedResult.streak,
+      };
+      
+      console.log(`Created result ${id} for user ${userId}:`, quizResult);
+      return quizResult;
     } catch (error) {
       console.error("Error creating result:", error);
       throw error;

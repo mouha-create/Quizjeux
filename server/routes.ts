@@ -423,6 +423,7 @@ export async function registerRoutes(
         quizHistory: [...(currentStats.quizHistory || []), savedResult.id].slice(-50), // Keep last 50
       });
 
+      console.log("Sending result to client:", JSON.stringify(savedResult, null, 2));
       res.json(savedResult);
     } catch (error) {
       console.error("Submit error:", error);

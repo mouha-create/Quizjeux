@@ -201,9 +201,13 @@ export default function Play() {
 
   const submitMutation = useMutation({
     mutationFn: async (data: { quizId: string; answers: Record<string, string | string[]>; timeSpent: number }) => {
-      return await apiRequest("POST", "/api/quizzes/submit", data) as QuizResult;
+      const response = await apiRequest("POST", "/api/quizzes/submit", data);
+      const result = await response.json() as QuizResult;
+      console.log("Received result from server:", result);
+      return result;
     },
     onSuccess: (data) => {
+      console.log("Setting result in state:", data);
       setResult(data);
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
       queryClient.invalidateQueries({ queryKey: ["/api/results"] });
@@ -212,6 +216,14 @@ export default function Play() {
       if (data.correctAnswers === data.totalQuestions) {
         triggerCelebration();
       }
+    },
+    onError: (error) => {
+      console.error("Error submitting quiz:", error);
+      toast({
+        title: "Error",
+        description: "Failed to submit quiz. Please try again.",
+        variant: "destructive",
+      });
     },
   });
 
