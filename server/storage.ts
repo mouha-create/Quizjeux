@@ -9,7 +9,7 @@ import { eq, desc, sql, and } from "drizzle-orm";
 
 export interface IStorage {
   // Quiz operations
-  getQuizzes(): Promise<Quiz[]>;
+  getQuizzes(userId?: string): Promise<Quiz[]>;
   getQuiz(id: string): Promise<Quiz | undefined>;
   createQuiz(quiz: InsertQuiz): Promise<Quiz>;
   updateQuiz(id: string, updates: Partial<Quiz>): Promise<Quiz | undefined>;
