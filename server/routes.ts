@@ -286,6 +286,10 @@ export async function registerRoutes(
   // Submit quiz answers
   app.post("/api/quizzes/submit", async (req, res) => {
     try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
       const { quizId, answers, timeSpent } = req.body;
       
       const quiz = await storage.getQuiz(quizId);
@@ -310,7 +314,7 @@ export async function registerRoutes(
 
         if (isCorrect) {
           correctAnswers++;
-          totalPoints += question.points;
+          totalPoints += question.points || 10;
           currentStreak++;
           if (currentStreak > maxStreak) {
             maxStreak = currentStreak;
@@ -323,7 +327,7 @@ export async function registerRoutes(
       const result: Omit<QuizResult, "id"> = {
         quizId,
         score: totalPoints,
-        totalPoints: quiz.questions.reduce((sum, q) => sum + q.points, 0),
+        totalPoints: quiz.questions.reduce((sum, q) => sum + (q.points || 10), 0),
         correctAnswers,
         totalQuestions: quiz.questions.length,
         timeSpent,
@@ -332,7 +336,30 @@ export async function registerRoutes(
         streak: maxStreak,
       };
 
-      const savedResult = await storage.createResult(result);
+      console.log(`Submitting quiz result - userId: ${req.session.userId}, correctAnswers: ${correctAnswers}, totalQuestions: ${result.totalQuestions}, score: ${totalPoints}`);
+      
+      const savedResult = await storage.createResult(result, req.session.userId);
+      
+      // Update user stats
+      const currentStats = await storage.getStats(req.session.userId);
+      const accuracy = result.totalQuestions > 0 
+        ? Math.round((result.correctAnswers / result.totalQuestions) * 100)
+        : 0;
+      
+      console.log(`Updating stats - current: ${JSON.stringify(currentStats)}, new accuracy: ${accuracy}%`);
+      
+      await storage.updateStats(req.session.userId, {
+        totalQuizzes: (currentStats.totalQuizzes || 0) + 1,
+        totalQuestions: (currentStats.totalQuestions || 0) + result.totalQuestions,
+        correctAnswers: (currentStats.correctAnswers || 0) + result.correctAnswers,
+        totalPoints: (currentStats.totalPoints || 0) + result.score,
+        xp: (currentStats.xp || 0) + result.score + (accuracy >= 80 ? 50 : 0), // Bonus XP for good accuracy
+        level: Math.floor(((currentStats.xp || 0) + result.score) / 1000) + 1,
+        currentStreak: maxStreak > 0 ? (currentStats.currentStreak || 0) + 1 : 0,
+        bestStreak: Math.max(currentStats.bestStreak || 0, maxStreak),
+        quizHistory: [...(currentStats.quizHistory || []), savedResult.id].slice(-50), // Keep last 50
+      });
+
       res.json(savedResult);
     } catch (error) {
       console.error("Submit error:", error);
@@ -343,9 +370,13 @@ export async function registerRoutes(
   // Get quiz results
   app.get("/api/results", async (req, res) => {
     try {
-      const results = await storage.getResults();
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      const results = await storage.getResults(req.session.userId);
       res.json(results);
     } catch (error) {
+      console.error("Error fetching results:", error);
       res.status(500).json({ error: "Failed to fetch results" });
     }
   });
@@ -353,9 +384,13 @@ export async function registerRoutes(
   // Get user stats
   app.get("/api/stats", async (req, res) => {
     try {
-      const stats = await storage.getStats();
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      const stats = await storage.getStats(req.session.userId);
       res.json(stats);
     } catch (error) {
+      console.error("Error fetching stats:", error);
       res.status(500).json({ error: "Failed to fetch stats" });
     }
   });

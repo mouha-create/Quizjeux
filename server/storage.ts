@@ -16,13 +16,13 @@ export interface IStorage {
   duplicateQuiz(id: string): Promise<Quiz | undefined>;
   
   // Quiz results
-  getResults(): Promise<QuizResult[]>;
+  getResults(userId: string): Promise<QuizResult[]>;
   getResult(id: string): Promise<QuizResult | undefined>;
-  createResult(result: Omit<QuizResult, "id">): Promise<QuizResult>;
+  createResult(result: Omit<QuizResult, "id">, userId: string): Promise<QuizResult>;
   
   // User stats
-  getStats(): Promise<UserStats>;
-  updateStats(updates: Partial<UserStats>): Promise<UserStats>;
+  getStats(userId: string): Promise<UserStats>;
+  updateStats(userId: string, updates: Partial<UserStats>): Promise<UserStats>;
   
   // Leaderboard
   getLeaderboard(): Promise<LeaderboardEntry[]>;
@@ -163,9 +163,9 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getResults(): Promise<QuizResult[]> {
+  async getResults(userId: string): Promise<QuizResult[]> {
     try {
-      const resultList = await db.select().from(resultsTable);
+      const resultList = await db.select().from(resultsTable).where(eq(resultsTable.userId, userId));
       return resultList.map(r => ({
         id: r.id,
         quizId: r.quizId,
@@ -206,13 +206,13 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async createResult(result: Omit<QuizResult, "id">): Promise<QuizResult> {
+  async createResult(result: Omit<QuizResult, "id">, userId: string): Promise<QuizResult> {
     try {
       const id = randomUUID();
       await db.insert(resultsTable).values({
         id,
         quizId: result.quizId,
-        userId: "user",
+        userId,
         score: result.score,
         totalPoints: result.totalPoints,
         correctAnswers: result.correctAnswers,
@@ -229,9 +229,9 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getStats(): Promise<UserStats> {
+  async getStats(userId: string): Promise<UserStats> {
     try {
-      const [stats] = await db.select().from(userStatsTable).where(eq(userStatsTable.userId, "user"));
+      const [stats] = await db.select().from(userStatsTable).where(eq(userStatsTable.userId, userId));
       if (!stats) {
         return {
           totalQuizzes: 0,
@@ -275,19 +275,19 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async updateStats(updates: Partial<UserStats>): Promise<UserStats> {
+  async updateStats(userId: string, updates: Partial<UserStats>): Promise<UserStats> {
     try {
       await db.insert(userStatsTable).values({
-        userId: "user",
+        userId,
         ...updates,
       }).onConflictDoUpdate({
         target: userStatsTable.userId,
         set: updates,
       });
-      return this.getStats();
+      return this.getStats(userId);
     } catch (error) {
       console.error("Error updating stats:", error);
-      return this.getStats();
+      return this.getStats(userId);
     }
   }
 
