@@ -109,25 +109,55 @@ Make questions engaging, educational, and accurate. Ensure there is variety in t
       ],
     });
 
-    const content = response.content[0];
-    if (content.type !== "text") {
-      throw new Error("Unexpected response type");
+    if (!response.content || response.content.length === 0) {
+      throw new Error("Empty response from AI");
     }
 
-    const parsed = JSON.parse(content.text);
-    const questions: Question[] = parsed.questions.map((q: any) => ({
-      id: randomUUID(),
-      type: q.type as QuestionType,
-      question: q.question,
-      options: q.options,
-      correctAnswer: q.correctAnswer,
-      explanation: q.explanation,
-      points: 10,
-    }));
+    const content = response.content[0];
+    if (content.type !== "text") {
+      throw new Error(`Unexpected response type: ${content.type}`);
+    }
+
+    let parsed: any;
+    try {
+      parsed = JSON.parse(content.text);
+    } catch (parseError) {
+      console.error("JSON parse error. Raw response:", content.text);
+      throw new Error(`Invalid JSON response from AI: ${parseError instanceof Error ? parseError.message : "Unknown parse error"}`);
+    }
+
+    if (!parsed || !Array.isArray(parsed.questions)) {
+      console.error("Invalid response structure. Parsed:", parsed);
+      throw new Error("AI response missing 'questions' array");
+    }
+
+    const questions: Question[] = parsed.questions.map((q: any, index: number) => {
+      if (!q.type || !q.question || !q.options || q.correctAnswer === undefined) {
+        throw new Error(`Question ${index + 1} is missing required fields (type, question, options, or correctAnswer)`);
+      }
+      
+      return {
+        id: randomUUID(),
+        type: q.type as QuestionType,
+        question: q.question,
+        options: q.options,
+        correctAnswer: q.correctAnswer,
+        explanation: q.explanation || "",
+        points: 10,
+      };
+    });
+
+    if (questions.length === 0) {
+      throw new Error("No questions generated");
+    }
 
     return questions;
   } catch (error) {
     console.error("Error generating questions:", error);
+    if (error instanceof Error) {
+      // Preserve specific error messages
+      throw error;
+    }
     throw new Error("Failed to generate questions. Please try again.");
   }
 }

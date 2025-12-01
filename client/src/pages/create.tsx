@@ -357,7 +357,8 @@ export default function Create() {
         difficulty,
         questionTypes: aiTypes,
       });
-      return response as { questions: Question[] };
+      const data = await response.json();
+      return data as { questions: Question[] };
     },
     onSuccess: (data) => {
       setQuestions(data.questions);

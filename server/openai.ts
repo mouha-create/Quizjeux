@@ -102,25 +102,55 @@ Make questions engaging, educational, and accurate. Ensure there is variety in t
       max_completion_tokens: 4096,
     });
 
+    if (!response.choices || response.choices.length === 0) {
+      throw new Error("Empty response from AI");
+    }
+
     const content = response.choices[0].message.content;
     if (!content) {
       throw new Error("No content in response");
     }
 
-    const parsed = JSON.parse(content);
-    const questions: Question[] = parsed.questions.map((q: any) => ({
-      id: randomUUID(),
-      type: q.type as QuestionType,
-      question: q.question,
-      options: q.options,
-      correctAnswer: q.correctAnswer,
-      explanation: q.explanation,
-      points: 10,
-    }));
+    let parsed: any;
+    try {
+      parsed = JSON.parse(content);
+    } catch (parseError) {
+      console.error("JSON parse error. Raw response:", content);
+      throw new Error(`Invalid JSON response from AI: ${parseError instanceof Error ? parseError.message : "Unknown parse error"}`);
+    }
+
+    if (!parsed || !Array.isArray(parsed.questions)) {
+      console.error("Invalid response structure. Parsed:", parsed);
+      throw new Error("AI response missing 'questions' array");
+    }
+
+    const questions: Question[] = parsed.questions.map((q: any, index: number) => {
+      if (!q.type || !q.question || !q.options || q.correctAnswer === undefined) {
+        throw new Error(`Question ${index + 1} is missing required fields (type, question, options, or correctAnswer)`);
+      }
+      
+      return {
+        id: randomUUID(),
+        type: q.type as QuestionType,
+        question: q.question,
+        options: q.options,
+        correctAnswer: q.correctAnswer,
+        explanation: q.explanation || "",
+        points: 10,
+      };
+    });
+
+    if (questions.length === 0) {
+      throw new Error("No questions generated");
+    }
 
     return questions;
   } catch (error) {
     console.error("Error generating questions:", error);
+    if (error instanceof Error) {
+      // Preserve specific error messages
+      throw error;
+    }
     throw new Error("Failed to generate questions. Please try again.");
   }
 }

@@ -1,8 +1,9 @@
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { Sparkles, Zap, Trophy, Brain, Target, Clock, ChevronRight, Play, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useAuth } from "@/lib/auth-context";
 
 const features = [
   {
@@ -53,6 +54,27 @@ const itemVariants = {
 };
 
 export default function Home() {
+  const { user } = useAuth();
+  const [, setLocation] = useLocation();
+
+  const handleCreateClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (user) {
+      setLocation("/create");
+    } else {
+      setLocation("/login");
+    }
+  };
+
+  const handleBrowseClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (user) {
+      setLocation("/library");
+    } else {
+      setLocation("/login");
+    }
+  };
+
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
@@ -104,23 +126,26 @@ export default function Home() {
                 marketing, and recruitment. Powered by AI for instant question generation.
               </p>
               <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:justify-center lg:justify-start">
-                <Link href="/create">
-                  <Button size="lg" variant="secondary" className="w-full gap-2 sm:w-auto" data-testid="button-hero-create">
-                    <Sparkles className="h-5 w-5" />
-                    Create with AI
-                  </Button>
-                </Link>
-                <Link href="/library">
-                  <Button 
-                    size="lg" 
-                    variant="outline" 
-                    className="w-full gap-2 border-white/30 bg-white/10 text-white backdrop-blur-sm sm:w-auto"
-                    data-testid="button-hero-browse"
-                  >
-                    <Play className="h-5 w-5" />
-                    Browse Quizzes
-                  </Button>
-                </Link>
+                <Button 
+                  size="lg" 
+                  variant="secondary" 
+                  className="w-full gap-2 sm:w-auto" 
+                  data-testid="button-hero-create"
+                  onClick={handleCreateClick}
+                >
+                  <Sparkles className="h-5 w-5" />
+                  Create with AI
+                </Button>
+                <Button 
+                  size="lg" 
+                  variant="outline" 
+                  className="w-full gap-2 border-white/30 bg-white/10 text-white backdrop-blur-sm sm:w-auto"
+                  data-testid="button-hero-browse"
+                  onClick={handleBrowseClick}
+                >
+                  <Play className="h-5 w-5" />
+                  Browse Quizzes
+                </Button>
               </div>
             </motion.div>
 
@@ -240,12 +265,15 @@ export default function Home() {
             Join thousands of educators, marketers, and HR professionals who use
             QuizCraft to create engaging quizzes.
           </p>
-          <Link href="/create">
-            <Button size="lg" className="mt-8 gap-2" data-testid="button-cta-create">
-              Get Started Free
-              <ChevronRight className="h-5 w-5" />
-            </Button>
-          </Link>
+          <Button 
+            size="lg" 
+            className="mt-8 gap-2" 
+            data-testid="button-cta-create"
+            onClick={handleCreateClick}
+          >
+            Get Started Free
+            <ChevronRight className="h-5 w-5" />
+          </Button>
         </motion.div>
       </section>
     </div>

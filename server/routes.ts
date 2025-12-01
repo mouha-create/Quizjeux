@@ -81,15 +81,22 @@ export async function registerRoutes(
     }
   });
 
-  // Get all quizzes
-  app.get("/api/quizzes", async (req, res) => {
+  // Redirect common typos to /api/quizzes
+  const handleGetQuizzes = async (req: any, res: any) => {
     try {
       const quizzes = await storage.getQuizzes();
       res.json(quizzes);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch quizzes" });
     }
-  });
+  };
+
+  app.get("/api/quizes", handleGetQuizzes); // 1 'z'
+  app.get("/api/quizizes", handleGetQuizzes); // 2 'z'
+  app.get("/api/quizizzes", handleGetQuizzes); // 3 'z'
+
+  // Get all quizzes
+  app.get("/api/quizzes", handleGetQuizzes);
 
   // Get single quiz
   app.get("/api/quizzes/:id", async (req, res) => {
@@ -176,8 +183,9 @@ export async function registerRoutes(
       res.json({ questions });
     } catch (error: any) {
       console.error("AI generation error:", error);
+      const errorMessage = error.message || "Failed to generate questions. Please try again.";
       res.status(500).json({ 
-        error: error.message || "Failed to generate questions" 
+        error: errorMessage
       });
     }
   });

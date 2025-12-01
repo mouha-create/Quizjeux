@@ -25,9 +25,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (response.ok) {
         const data = await response.json();
         setUser(data.user);
+      } else if (response.status === 401) {
+        // User is not authenticated, which is fine
+        setUser(null);
       }
     } catch (error) {
-      console.error("Failed to fetch current user:", error);
+      // Silently handle errors for unauthenticated users
+      setUser(null);
     } finally {
       setIsLoading(false);
     }
