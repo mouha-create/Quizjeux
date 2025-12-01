@@ -5,7 +5,7 @@ import { badges } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./database";
 import { usersTable, quizzesTable, resultsTable, userStatsTable } from "@shared/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 
 export interface IStorage {
   // Quiz operations

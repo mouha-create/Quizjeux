@@ -370,20 +370,54 @@ export async function registerRoutes(
 
       console.log(`Submitting quiz result - userId: ${req.session.userId}, correctAnswers: ${correctAnswers}, totalQuestions: ${result.totalQuestions}, score: ${totalPoints}`);
       
+      // Check if user has already completed this quiz
+      const existingResults = await storage.getResults(req.session.userId);
+      const hasCompletedBefore = existingResults.some(r => r.quizId === quizId);
+      
+      console.log(`User ${req.session.userId} has completed quiz ${quizId} before: ${hasCompletedBefore}`);
+      
       const savedResult = await storage.createResult(result, req.session.userId);
       
-      // Update user stats
+      // Update quiz plays count and average score
+      const allQuizResults = await db.select().from(resultsTable).where(eq(resultsTable.quizId, quizId));
+      const quizPlays = allQuizResults.length;
+      const quizAverageScore = quizPlays > 0
+        ? Math.round(allQuizResults.reduce((sum, r) => sum + (r.score || 0), 0) / quizPlays)
+        : 0;
+      
+      await db.update(quizzesTable)
+        .set({ 
+          plays: quizPlays,
+          averageScore: quizAverageScore,
+          updatedAt: new Date()
+        })
+        .where(eq(quizzesTable.id, quizId));
+      
+      console.log(`Updated quiz ${quizId}: plays=${quizPlays}, averageScore=${quizAverageScore}`);
+      
+      // Update user stats - only if this is a new completion
       const currentStats = await storage.getStats(req.session.userId);
       const accuracy = result.totalQuestions > 0 
         ? Math.round((result.correctAnswers / result.totalQuestions) * 100)
         : 0;
       
-      const newTotalQuizzes = (currentStats.totalQuizzes || 0) + 1;
-      const newTotalQuestions = (currentStats.totalQuestions || 0) + result.totalQuestions;
-      const newCorrectAnswers = (currentStats.correctAnswers || 0) + result.correctAnswers;
-      const newTotalPoints = (currentStats.totalPoints || 0) + result.score;
+      // Only increment stats if this is the first time completing this quiz
+      const newTotalQuizzes = hasCompletedBefore 
+        ? (currentStats.totalQuizzes || 0)
+        : (currentStats.totalQuizzes || 0) + 1;
+      const newTotalQuestions = hasCompletedBefore
+        ? (currentStats.totalQuestions || 0)
+        : (currentStats.totalQuestions || 0) + result.totalQuestions;
+      const newCorrectAnswers = hasCompletedBefore
+        ? (currentStats.correctAnswers || 0)
+        : (currentStats.correctAnswers || 0) + result.correctAnswers;
+      const newTotalPoints = hasCompletedBefore
+        ? (currentStats.totalPoints || 0)
+        : (currentStats.totalPoints || 0) + result.score;
       const bonusXp = accuracy >= 80 ? 50 : 0; // Bonus XP for good accuracy
-      const newXp = (currentStats.xp || 0) + result.score + bonusXp;
+      const newXp = hasCompletedBefore
+        ? (currentStats.xp || 0)
+        : (currentStats.xp || 0) + result.score + bonusXp;
       const newLevel = Math.max(1, Math.floor(newXp / 1000) + 1);
       const newBestStreak = Math.max(currentStats.bestStreak || 0, maxStreak);
       
