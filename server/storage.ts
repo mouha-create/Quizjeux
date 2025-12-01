@@ -1,10 +1,11 @@
 import type { 
   Quiz, InsertQuiz, Question, QuizResult, UserStats, LeaderboardEntry, User 
 } from "@shared/schema";
+import { badges } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./database";
 import { usersTable, quizzesTable, resultsTable, userStatsTable } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
   // Quiz operations
@@ -366,11 +367,78 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getLeaderboard(): Promise<LeaderboardEntry[]> {
-    return [
-      { rank: 1, name: "Quiz Master", score: 950, quizzes: 42, accuracy: 95 },
-      { rank: 2, name: "Brain Einstein", score: 850, quizzes: 35, accuracy: 92 },
-      { rank: 3, name: "Knowledge Seeker", score: 750, quizzes: 28, accuracy: 89 },
-    ];
+    try {
+      // Get all user stats ordered by total points
+      const allStats = await db.select().from(userStatsTable).orderBy(desc(userStatsTable.totalPoints));
+      
+      // Get all users to match usernames
+      const allUsers = await db.select().from(usersTable);
+      const userMap = new Map(allUsers.map(u => [u.id, u.username]));
+      
+      const leaderboard: LeaderboardEntry[] = allStats
+        .map((stats, index) => {
+          const username = userMap.get(stats.userId) || "Unknown";
+          const accuracy = stats.totalQuestions > 0
+            ? Math.round((stats.correctAnswers / stats.totalQuestions) * 100)
+            : 0;
+          
+          return {
+            rank: index + 1,
+            name: username,
+            score: stats.totalPoints || 0,
+            quizzes: stats.totalQuizzes || 0,
+            accuracy: accuracy,
+          };
+        })
+        .filter(entry => entry.score > 0) // Only include users with points
+        .slice(0, 100); // Limit to top 100
+      
+      console.log(`Leaderboard: ${leaderboard.length} entries`);
+      return leaderboard;
+    } catch (error) {
+      console.error("Error getting leaderboard:", error);
+      return [];
+    }
+  }
+
+  // Calculate which badges should be earned based on stats
+  calculateBadges(stats: UserStats, result?: QuizResult): string[] {
+    const earnedBadges = new Set<string>(stats.badges || []);
+    
+    // First Quiz
+    if (stats.totalQuizzes >= 1 && !earnedBadges.has("firstQuiz")) {
+      earnedBadges.add("firstQuiz");
+    }
+    
+    // Perfect Score (check current result)
+    if (result && result.correctAnswers === result.totalQuestions && !earnedBadges.has("perfectScore")) {
+      earnedBadges.add("perfectScore");
+    }
+    
+    // Streak badges
+    if (stats.bestStreak >= 5 && !earnedBadges.has("streak5")) {
+      earnedBadges.add("streak5");
+    }
+    if (stats.bestStreak >= 10 && !earnedBadges.has("streak10")) {
+      earnedBadges.add("streak10");
+    }
+    
+    // Quiz Master
+    if (stats.totalQuizzes >= 10 && !earnedBadges.has("quizMaster")) {
+      earnedBadges.add("quizMaster");
+    }
+    
+    // Speedster (check current result - under 2 minutes = 120 seconds)
+    if (result && result.timeSpent < 120 && !earnedBadges.has("speedster")) {
+      earnedBadges.add("speedster");
+    }
+    
+    // Brainiac
+    if (stats.correctAnswers >= 100 && !earnedBadges.has("brainiac")) {
+      earnedBadges.add("brainiac");
+    }
+    
+    return Array.from(earnedBadges);
   }
 }
 

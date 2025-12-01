@@ -167,9 +167,24 @@ export async function registerRoutes(
         });
       }
       
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
       console.log("Creating quiz with title:", validationResult.data.title);
       const quiz = await storage.createQuiz(validationResult.data);
       console.log("Quiz created successfully with ID:", quiz.id);
+      
+      // Award "Creator" badge if user hasn't earned it yet
+      const currentStats = await storage.getStats(req.session.userId);
+      if (!currentStats.badges?.includes("creator")) {
+        const newBadges = [...(currentStats.badges || []), "creator"];
+        await storage.updateStats(req.session.userId, {
+          badges: newBadges,
+        });
+        console.log(`Awarded "Creator" badge to user ${req.session.userId}`);
+      }
+      
       res.status(201).json(quiz);
     } catch (error: any) {
       console.error("Error creating quiz:", error);
@@ -363,17 +378,47 @@ export async function registerRoutes(
         ? Math.round((result.correctAnswers / result.totalQuestions) * 100)
         : 0;
       
+      const newTotalQuizzes = (currentStats.totalQuizzes || 0) + 1;
+      const newTotalQuestions = (currentStats.totalQuestions || 0) + result.totalQuestions;
+      const newCorrectAnswers = (currentStats.correctAnswers || 0) + result.correctAnswers;
+      const newTotalPoints = (currentStats.totalPoints || 0) + result.score;
+      const newXp = (currentStats.xp || 0) + result.score + (accuracy >= 80 ? 50 : 0); // Bonus XP for good accuracy
+      const newLevel = Math.floor(newXp / 1000) + 1;
+      const newBestStreak = Math.max(currentStats.bestStreak || 0, maxStreak);
+      
+      // Calculate new stats object for badge calculation
+      const newStats: UserStats = {
+        totalQuizzes: newTotalQuizzes,
+        totalQuestions: newTotalQuestions,
+        correctAnswers: newCorrectAnswers,
+        totalPoints: newTotalPoints,
+        xp: newXp,
+        level: newLevel,
+        currentStreak: maxStreak > 0 ? (currentStats.currentStreak || 0) + 1 : 0,
+        bestStreak: newBestStreak,
+        badges: currentStats.badges || [],
+        quizHistory: [...(currentStats.quizHistory || []), savedResult.id].slice(-50),
+      };
+      
+      // Calculate badges
+      const earnedBadges = (storage as any).calculateBadges(newStats, result);
+      const newBadges = earnedBadges.length > (currentStats.badges?.length || 0) 
+        ? earnedBadges 
+        : (currentStats.badges || []);
+      
       console.log(`Updating stats - current: ${JSON.stringify(currentStats)}, new accuracy: ${accuracy}%`);
+      console.log(`Earned badges: ${earnedBadges.join(", ")}`);
       
       await storage.updateStats(req.session.userId, {
-        totalQuizzes: (currentStats.totalQuizzes || 0) + 1,
-        totalQuestions: (currentStats.totalQuestions || 0) + result.totalQuestions,
-        correctAnswers: (currentStats.correctAnswers || 0) + result.correctAnswers,
-        totalPoints: (currentStats.totalPoints || 0) + result.score,
-        xp: (currentStats.xp || 0) + result.score + (accuracy >= 80 ? 50 : 0), // Bonus XP for good accuracy
-        level: Math.floor(((currentStats.xp || 0) + result.score) / 1000) + 1,
+        totalQuizzes: newTotalQuizzes,
+        totalQuestions: newTotalQuestions,
+        correctAnswers: newCorrectAnswers,
+        totalPoints: newTotalPoints,
+        xp: newXp,
+        level: newLevel,
         currentStreak: maxStreak > 0 ? (currentStats.currentStreak || 0) + 1 : 0,
-        bestStreak: Math.max(currentStats.bestStreak || 0, maxStreak),
+        bestStreak: newBestStreak,
+        badges: newBadges,
         quizHistory: [...(currentStats.quizHistory || []), savedResult.id].slice(-50), // Keep last 50
       });
 
