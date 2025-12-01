@@ -160,16 +160,23 @@ export async function registerRoutes(
     try {
       const validationResult = insertQuizSchema.safeParse(req.body);
       if (!validationResult.success) {
+        console.error("Invalid quiz data:", validationResult.error.errors);
         return res.status(400).json({ 
           error: "Invalid quiz data", 
           details: validationResult.error.errors 
         });
       }
       
+      console.log("Creating quiz with title:", validationResult.data.title);
       const quiz = await storage.createQuiz(validationResult.data);
+      console.log("Quiz created successfully with ID:", quiz.id);
       res.status(201).json(quiz);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to create quiz" });
+    } catch (error: any) {
+      console.error("Error creating quiz:", error);
+      res.status(500).json({ 
+        error: "Failed to create quiz",
+        message: error?.message || "Unknown error"
+      });
     }
   });
 

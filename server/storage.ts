@@ -37,7 +37,9 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   async getQuizzes(): Promise<Quiz[]> {
     try {
+      console.log("Fetching all quizzes from database...");
       const quizList = await db.select().from(quizzesTable);
+      console.log(`Found ${quizList.length} quiz(es) in database`);
       return quizList.map(q => ({
         id: q.id,
         title: q.title,
@@ -51,8 +53,9 @@ export class DatabaseStorage implements IStorage {
         plays: q.plays || 0,
         averageScore: q.averageScore || 0,
       }));
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error getting quizzes:", error);
+      console.error("Error details:", error?.message, error?.stack);
       return [];
     }
   }
@@ -84,6 +87,7 @@ export class DatabaseStorage implements IStorage {
     try {
       const id = randomUUID();
       const now = new Date();
+      console.log(`Creating quiz with ID: ${id}, title: ${quiz.title}, questions count: ${quiz.questions.length}`);
       await db.insert(quizzesTable).values({
         id,
         title: quiz.title,
@@ -95,6 +99,7 @@ export class DatabaseStorage implements IStorage {
         createdAt: now,
         updatedAt: now,
       });
+      console.log(`Quiz ${id} successfully inserted into database`);
       return {
         id,
         title: quiz.title,
@@ -108,8 +113,9 @@ export class DatabaseStorage implements IStorage {
         plays: 0,
         averageScore: 0,
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating quiz:", error);
+      console.error("Error details:", error?.message, error?.stack);
       throw error;
     }
   }
