@@ -75,9 +75,10 @@ let sessionStore: any;
 // Only use PostgreSQL store if DATABASE_URL is available
 if (process.env.DATABASE_URL) {
   try {
-    // Create session table manually first (avoids table.sql file issue)
+    // Create session table and migrate database schema
     (async () => {
       try {
+        // Create session table
         await db.execute(sql`
           CREATE TABLE IF NOT EXISTS user_sessions (
             sid VARCHAR(255) PRIMARY KEY,
@@ -86,10 +87,52 @@ if (process.env.DATABASE_URL) {
           )
         `);
         console.log("Session table ready");
+
+        // Migrate quizzes table - add new columns if they don't exist
+        await db.execute(sql`
+          DO $$ 
+          BEGIN
+            -- Add category column if it doesn't exist
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                          WHERE table_name = 'quizzes' AND column_name = 'category') THEN
+              ALTER TABLE quizzes ADD COLUMN category VARCHAR;
+            END IF;
+
+            -- Add tags column if it doesn't exist
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                          WHERE table_name = 'quizzes' AND column_name = 'tags') THEN
+              ALTER TABLE quizzes ADD COLUMN tags TEXT[] DEFAULT ARRAY[]::TEXT[];
+            END IF;
+
+            -- Add is_public column if it doesn't exist
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                          WHERE table_name = 'quizzes' AND column_name = 'is_public') THEN
+              ALTER TABLE quizzes ADD COLUMN is_public BOOLEAN DEFAULT true;
+            END IF;
+
+            -- Add user_id column if it doesn't exist
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                          WHERE table_name = 'quizzes' AND column_name = 'user_id') THEN
+              ALTER TABLE quizzes ADD COLUMN user_id VARCHAR;
+            END IF;
+          END $$;
+        `);
+        console.log("Quizzes table migration complete");
+
+        // Create user_favorites table if it doesn't exist
+        await db.execute(sql`
+          CREATE TABLE IF NOT EXISTS user_favorites (
+            user_id VARCHAR NOT NULL,
+            quiz_id VARCHAR NOT NULL,
+            created_at TIMESTAMP DEFAULT NOW(),
+            PRIMARY KEY (user_id, quiz_id)
+          )
+        `);
+        console.log("User favorites table ready");
       } catch (error: any) {
         // Table might already exist, which is fine
-        if (!error.message?.includes("already exists")) {
-          console.warn("Could not create session table:", error.message);
+        if (!error.message?.includes("already exists") && !error.message?.includes("duplicate")) {
+          console.warn("Database migration warning:", error.message);
         }
       }
     })();
