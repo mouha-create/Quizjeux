@@ -80,7 +80,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function logout() {
-    const response = await fetch("/api/auth/logout", { method: "POST" });
+    const response = await fetch("/api/auth/logout", { 
+      method: "POST",
+      credentials: "include", // Important: include cookies
+    });
     if (response.ok) {
       setUser(null);
     }

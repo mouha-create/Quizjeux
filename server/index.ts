@@ -4,6 +4,7 @@ import { serveStatic } from "./static";
 import { createServer } from "http";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
+import cors from "cors";
 import { db } from "./database";
 import { sql } from "drizzle-orm";
 
@@ -14,6 +15,36 @@ const httpServer = createServer(app);
 if (process.env.NODE_ENV === "production") {
   app.set("trust proxy", 1);
 }
+
+// Configure CORS - MUST be before session middleware
+const corsOptions = {
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (process.env.NODE_ENV === "production") {
+      const allowedOrigins = [
+        "https://quizjeux.onrender.com",
+        "https://www.quizjeux.onrender.com",
+      ];
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.warn(`CORS: Blocked origin: ${origin}`);
+        callback(new Error("Not allowed by CORS"));
+      }
+    } else {
+      // Allow all origins in development
+      callback(null, true);
+    }
+  },
+  credentials: true, // CRITICAL: Allow cookies to be sent
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  exposedHeaders: ["Set-Cookie"],
+};
+
+app.use(cors(corsOptions));
 
 declare module "express-session" {
   interface SessionData {
@@ -80,8 +111,8 @@ app.use(
   session({
     ...(sessionStore && { store: sessionStore }), // Use PostgreSQL store if available
     secret: process.env.SESSION_SECRET || "dev-secret-key",
-    resave: true, // Save session even if not modified (important for PostgreSQL store)
-    saveUninitialized: true, // Save uninitialized sessions
+    resave: false, // Don't save session if unmodified (better for PostgreSQL)
+    saveUninitialized: true, // Save uninitialized sessions (needed for login)
     rolling: true, // Reset expiration on every request
     cookie: {
       secure: process.env.NODE_ENV === "production", // Secure cookies in production (HTTPS required)
@@ -92,6 +123,7 @@ app.use(
       path: "/", // Ensure cookie is available for all paths
     },
     name: "quizSession", // Custom session name
+    proxy: process.env.NODE_ENV === "production", // Trust proxy in production
   }),
 );
 

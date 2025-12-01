@@ -62,17 +62,30 @@ export async function registerRoutes(
         return res.status(401).json({ error: "Invalid credentials" });
       }
 
-      req.session.userId = userEntry.user.id;
-      // Save session explicitly
-      req.session.save((err) => {
+      // Regenerate session to prevent session fixation attacks
+      req.session.regenerate((err) => {
         if (err) {
-          console.error("Error saving session:", err);
+          console.error("Error regenerating session:", err);
           return res.status(500).json({ error: "Login failed" });
         }
-        console.log("Session saved, userId:", req.session.userId, "sessionID:", req.sessionID);
-        console.log("Cookie header:", req.headers.cookie);
-        console.log("Set-Cookie will be:", res.getHeader("Set-Cookie"));
-        res.json({ user: { id: userEntry.user.id, username: userEntry.user.username, email: userEntry.user.email } });
+        
+        req.session.userId = userEntry.user.id;
+        
+        // Save session explicitly
+        req.session.save((err) => {
+          if (err) {
+            console.error("Error saving session:", err);
+            return res.status(500).json({ error: "Login failed" });
+          }
+          console.log("Session saved, userId:", req.session.userId, "sessionID:", req.sessionID);
+          console.log("Cookie header:", req.headers.cookie);
+          
+          // Log Set-Cookie header after response is sent
+          const setCookieHeader = res.getHeader("Set-Cookie");
+          console.log("Set-Cookie header:", setCookieHeader);
+          
+          res.json({ user: { id: userEntry.user.id, username: userEntry.user.username, email: userEntry.user.email } });
+        });
       });
     } catch (error) {
       res.status(500).json({ error: "Login failed" });
