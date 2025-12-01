@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
 
 const app = express();
 const httpServer = createServer(app);
@@ -29,16 +30,36 @@ app.use(
 
 app.use(express.urlencoded({ extended: false }));
 
+// Configure session store with PostgreSQL
+const PgSession = connectPgSimple(session);
+let sessionStore: any;
+
+// Only use PostgreSQL store if DATABASE_URL is available
+if (process.env.DATABASE_URL) {
+  try {
+    sessionStore = new PgSession({
+      conString: process.env.DATABASE_URL, // Use connection string directly
+      tableName: "user_sessions", // Table name for sessions
+      createTableIfMissing: true, // Auto-create table if missing
+    });
+  } catch (error) {
+    console.warn("Failed to initialize PostgreSQL session store, using memory store:", error);
+    sessionStore = undefined;
+  }
+}
+
 app.use(
   session({
+    ...(sessionStore && { store: sessionStore }), // Use PostgreSQL store if available
     secret: process.env.SESSION_SECRET || "dev-secret-key",
-    resave: true, // Save session even if not modified
-    saveUninitialized: true, // Save uninitialized sessions
+    resave: false, // Don't save if not modified
+    saveUninitialized: false, // Don't save uninitialized sessions
     cookie: {
-      secure: process.env.NODE_ENV === "production" && process.env.RENDER === "true" ? true : false, // Only secure on Render HTTPS
+      secure: process.env.NODE_ENV === "production", // Secure cookies in production (HTTPS required)
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // Allow cross-site cookies on Render
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // Allow cross-site cookies on Render (requires secure: true)
+      domain: undefined, // Let browser set domain automatically
     },
     name: "quizSession", // Custom session name
   }),
