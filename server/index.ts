@@ -75,8 +75,9 @@ app.use(
   session({
     ...(sessionStore && { store: sessionStore }), // Use PostgreSQL store if available
     secret: process.env.SESSION_SECRET || "dev-secret-key",
-    resave: false, // Don't save if not modified
-    saveUninitialized: false, // Don't save uninitialized sessions
+    resave: true, // Save session even if not modified (important for PostgreSQL store)
+    saveUninitialized: true, // Save uninitialized sessions
+    rolling: true, // Reset expiration on every request
     cookie: {
       secure: process.env.NODE_ENV === "production", // Secure cookies in production (HTTPS required)
       httpOnly: true,
