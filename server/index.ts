@@ -83,6 +83,7 @@ app.use(
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // Allow cross-site cookies on Render (requires secure: true)
       domain: undefined, // Let browser set domain automatically
+      path: "/", // Ensure cookie is available for all paths
     },
     name: "quizSession", // Custom session name
   }),
