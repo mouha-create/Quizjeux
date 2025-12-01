@@ -23,8 +23,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { quizThemeColors } from "@/lib/quiz-themes";
-import type { Question, QuestionType, QuizTheme, DifficultyLevel, InsertQuiz } from "@shared/schema";
-import { quizThemes, questionTypes, difficultyLevels } from "@shared/schema";
+import type { Question, QuestionType, QuizTheme, DifficultyLevel, InsertQuiz, QuizCategory } from "@shared/schema";
+import { quizThemes, questionTypes, difficultyLevels, quizCategories } from "@shared/schema";
 
 const steps = ["Details", "Questions", "Settings"];
 
@@ -314,6 +314,10 @@ export default function Create() {
   const [description, setDescription] = useState("");
   const [theme, setTheme] = useState<QuizTheme>("purple");
   const [difficulty, setDifficulty] = useState<DifficultyLevel>("intermediate");
+  const [category, setCategory] = useState<QuizCategory | undefined>(undefined);
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState("");
+  const [isPublic, setIsPublic] = useState(true);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [timeLimit, setTimeLimit] = useState<number | undefined>(undefined);
   const [enableTimer, setEnableTimer] = useState(false);
@@ -452,6 +456,9 @@ export default function Create() {
       questions,
       theme,
       difficulty,
+      category,
+      tags,
+      isPublic,
       timeLimit: enableTimer ? timeLimit : undefined,
     };
 
@@ -662,6 +669,80 @@ export default function Create() {
                     Theme
                   </Label>
                   <ThemeSelector value={theme} onChange={setTheme} />
+                </div>
+                <div>
+                  <Label htmlFor="category">Category</Label>
+                  <Select
+                    value={category || ""}
+                    onValueChange={(v) => setCategory(v ? (v as QuizCategory) : undefined)}
+                  >
+                    <SelectTrigger className="mt-1.5" id="category">
+                      <SelectValue placeholder="Select a category (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">None</SelectItem>
+                      {quizCategories.map((cat) => (
+                        <SelectItem key={cat} value={cat}>
+                          {cat}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="tags">Tags</Label>
+                  <div className="mt-1.5 space-y-2">
+                    <div className="flex gap-2">
+                      <Input
+                        id="tags"
+                        value={tagInput}
+                        onChange={(e) => setTagInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && tagInput.trim()) {
+                            e.preventDefault();
+                            if (!tags.includes(tagInput.trim())) {
+                              setTags([...tags, tagInput.trim()]);
+                            }
+                            setTagInput("");
+                          }
+                        }}
+                        placeholder="Type a tag and press Enter..."
+                        className="flex-1"
+                      />
+                    </div>
+                    {tags.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {tags.map((tag, i) => (
+                          <Badge
+                            key={i}
+                            variant="secondary"
+                            className="gap-1"
+                          >
+                            {tag}
+                            <button
+                              onClick={() => setTags(tags.filter((_, idx) => idx !== i))}
+                              className="ml-1 hover:text-destructive"
+                            >
+                              ×
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="isPublic">Public Quiz</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Make this quiz visible to everyone
+                    </p>
+                  </div>
+                  <Switch
+                    id="isPublic"
+                    checked={isPublic}
+                    onCheckedChange={setIsPublic}
+                  />
                 </div>
               </CardContent>
             </Card>

@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { 
   Plus, Play, Edit2, Trash2, Share2, Clock, Users, Target, 
-  Search, Filter, MoreVertical, Copy, Sparkles
+  Search, Filter, MoreVertical, Copy, Sparkles, Heart, Star
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
@@ -86,6 +86,7 @@ export default function Library() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTheme, setSelectedTheme] = useState<QuizTheme | "all">("all");
   const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyLevel | "all">("all");
+  const [selectedCategory, setSelectedCategory] = useState<QuizCategory | "all">("all");
   const [deleteQuizId, setDeleteQuizId] = useState<string | null>(null);
 
   const { data: quizzes, isLoading } = useQuery<Quiz[]>({
@@ -145,7 +146,8 @@ export default function Library() {
     // Search filter
     const matchesSearch = 
       quiz.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      quiz.description?.toLowerCase().includes(searchQuery.toLowerCase());
+      quiz.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      quiz.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
     
     // Theme filter
     const matchesTheme = selectedTheme === "all" || quiz.theme === selectedTheme;
@@ -153,7 +155,10 @@ export default function Library() {
     // Difficulty filter
     const matchesDifficulty = selectedDifficulty === "all" || quiz.difficulty === selectedDifficulty;
     
-    return matchesSearch && matchesTheme && matchesDifficulty;
+    // Category filter
+    const matchesCategory = selectedCategory === "all" || quiz.category === selectedCategory;
+    
+    return matchesSearch && matchesTheme && matchesDifficulty && matchesCategory;
   });
 
   return (
@@ -224,6 +229,7 @@ export default function Library() {
               onClick={() => {
                 setSelectedTheme("all");
                 setSelectedDifficulty("all");
+                setSelectedCategory("all");
                 setSearchQuery("");
               }}
               className="text-muted-foreground"
@@ -315,10 +321,25 @@ export default function Library() {
                       <Users className="h-3 w-3" />
                       {quiz.plays} plays
                     </Badge>
+                    {quiz.category && (
+                      <Badge variant="outline" className="gap-1">
+                        {quiz.category}
+                      </Badge>
+                    )}
+                    {quiz.tags && quiz.tags.length > 0 && quiz.tags.slice(0, 2).map((tag, i) => (
+                      <Badge key={i} variant="outline" className="gap-1 text-xs">
+                        {tag}
+                      </Badge>
+                    ))}
                     {quiz.timeLimit && (
                       <Badge variant="secondary" className="gap-1">
                         <Clock className="h-3 w-3" />
                         {Math.floor(quiz.timeLimit / 60)}m
+                      </Badge>
+                    )}
+                    {!quiz.isPublic && (
+                      <Badge variant="secondary" className="gap-1">
+                        Private
                       </Badge>
                     )}
                   </div>
