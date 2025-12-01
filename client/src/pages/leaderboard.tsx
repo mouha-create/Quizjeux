@@ -59,8 +59,10 @@ function LeaderboardRow({
           <p className="text-xs text-muted-foreground">Quizzes</p>
         </div>
         <div>
-          <p className="font-heading text-lg font-bold">{entry.accuracy}%</p>
-          <p className="text-xs text-muted-foreground">Accuracy</p>
+          <p className="font-heading text-lg font-bold" translate="no">
+            {typeof entry.accuracy === 'number' && !isNaN(entry.accuracy) ? entry.accuracy : 0}%
+          </p>
+          <p className="text-xs text-muted-foreground" translate="no">Accuracy</p>
         </div>
       </div>
     </motion.div>

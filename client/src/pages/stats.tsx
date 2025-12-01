@@ -47,10 +47,10 @@ function StatCard({
             <Icon className="h-6 w-6 text-white" />
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">{label}</p>
-            <p className="font-heading text-2xl font-bold">{value}</p>
+            <p className="text-sm text-muted-foreground" translate="no">{label}</p>
+            <p className="font-heading text-2xl font-bold" translate="no">{value}</p>
             {subtext && (
-              <p className="text-xs text-muted-foreground">{subtext}</p>
+              <p className="text-xs text-muted-foreground" translate="no">{subtext}</p>
             )}
           </div>
         </div>
@@ -142,7 +142,7 @@ export default function Stats() {
     quizHistory: [],
   };
 
-  const accuracy = userStats.totalQuestions > 0 
+  const accuracy = userStats.totalQuestions > 0 && typeof userStats.correctAnswers === 'number' && typeof userStats.totalQuestions === 'number'
     ? Math.round((userStats.correctAnswers / userStats.totalQuestions) * 100) 
     : 0;
 
@@ -150,11 +150,16 @@ export default function Stats() {
   const xpProgress = (userStats.xp / xpForNextLevel) * 100;
 
   // Generate chart data from results
-  const chartData = (results || []).slice(-7).map((result, i) => ({
-    name: `Quiz ${i + 1}`,
-    accuracy: Math.round((result.correctAnswers / result.totalQuestions) * 100),
-    score: result.score,
-  }));
+  const chartData = (results || []).slice(-7).map((result, i) => {
+    const acc = result.totalQuestions > 0 && typeof result.correctAnswers === 'number' && typeof result.totalQuestions === 'number'
+      ? Math.round((result.correctAnswers / result.totalQuestions) * 100)
+      : 0;
+    return {
+      name: `Quiz ${i + 1}`,
+      accuracy: acc,
+      score: result.score || 0,
+    };
+  });
 
   const allBadgeIds = Object.keys(badgeDefinitions);
 

@@ -342,7 +342,9 @@ export default function Play() {
 
   // Results Screen
   if (quizComplete && result) {
-    const accuracy = Math.round((result.correctAnswers / result.totalQuestions) * 100);
+    const accuracy = result.totalQuestions > 0 && typeof result.correctAnswers === 'number' && typeof result.totalQuestions === 'number'
+      ? Math.round((result.correctAnswers / result.totalQuestions) * 100)
+      : 0;
     
     return (
       <div className={`min-h-screen ${themeGradient} p-4`}>
@@ -373,8 +375,8 @@ export default function Play() {
                 className="mx-auto my-8 flex h-40 w-40 items-center justify-center rounded-full border-8 border-primary"
               >
                 <div className="text-center">
-                  <span className="font-heading text-5xl font-bold">{accuracy}%</span>
-                  <p className="text-sm text-muted-foreground">Accuracy</p>
+                  <span className="font-heading text-5xl font-bold" translate="no">{accuracy}%</span>
+                  <p className="text-sm text-muted-foreground" translate="no">Accuracy</p>
                 </div>
               </motion.div>
 
