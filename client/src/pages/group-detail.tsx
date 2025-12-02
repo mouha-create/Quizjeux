@@ -70,7 +70,7 @@ export default function GroupDetail() {
     enabled: !!id,
   });
 
-  const { data: myGroups } = useQuery({
+  const { data: myGroups, refetch: refetchMyGroups } = useQuery({
     queryKey: ["/api/my-groups"],
     queryFn: async () => {
       const response = await apiRequest("GET", "/api/my-groups");
@@ -78,7 +78,7 @@ export default function GroupDetail() {
     },
   });
 
-  const isMember = myGroups?.some((g: Group) => g.id === id);
+  const isMember = myGroups?.some((g: Group) => g.id === id) || false;
   const isCreator = group?.creatorId === user?.id;
   const member = members?.find((m: any) => m.userId === user?.id);
 
@@ -117,13 +117,17 @@ export default function GroupDetail() {
       }
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({
         title: "Groupe quitté",
         description: `Vous avez quitté "${group?.name}"`,
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/groups", id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/my-groups"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["/api/groups", id] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/my-groups"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/groups", id, "members"] }),
+        refetchMyGroups(),
+      ]);
       navigate("/groups");
     },
     onError: (error: any) => {

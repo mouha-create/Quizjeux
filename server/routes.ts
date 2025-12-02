@@ -8,8 +8,8 @@ import { insertQuizSchema, aiGenerateRequestSchema, loginSchema, signupSchema, c
 import type { Question, QuizResult, UserStats } from "@shared/schema";
 import { hashPassword, verifyPassword } from "./auth";
 import { db } from "./database";
-import { resultsTable, quizzesTable } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { resultsTable, quizzesTable, groupQuizzesTable } from "@shared/schema";
+import { eq, and, inArray, sql } from "drizzle-orm";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -471,6 +471,83 @@ export async function registerRoutes(
       
       console.log(`Updating stats - current: ${JSON.stringify(currentStats)}, new accuracy: ${accuracy}%`);
       console.log(`Earned badges: ${earnedBadges.join(", ")}`);
+      
+      // Update group points if quiz is shared with groups and this is first completion
+      if (!hasCompletedBefore && quiz.sharedWithGroups && quiz.sharedWithGroups.length > 0) {
+        try {
+          // Get user's groups
+          const userGroups = await storage.getUserGroups(req.session.userId);
+          const userGroupIds = userGroups.map(g => g.id);
+          
+          // Find groups that have this quiz shared and user is a member
+          const relevantGroups = quiz.sharedWithGroups.filter(groupId => 
+            userGroupIds.includes(groupId)
+          );
+          
+          for (const groupId of relevantGroups) {
+            // Check if quiz is actually shared with this group
+            const [groupQuiz] = await db.select()
+              .from(groupQuizzesTable)
+              .where(and(
+                eq(groupQuizzesTable.groupId, groupId),
+                eq(groupQuizzesTable.quizId, quizId)
+              ));
+            
+            if (groupQuiz) {
+              // Get current group stats
+              const group = await storage.getGroup(groupId);
+              if (group) {
+                // Update group total points
+                const newGroupPoints = (group.totalPoints || 0) + result.score;
+                
+                // Calculate new average score for group
+                const groupResults = await db.select()
+                  .from(resultsTable)
+                  .where(eq(resultsTable.quizId, quizId));
+                
+                // Get all quiz IDs shared with this group
+                const groupQuizIds = await db.select({ quizId: groupQuizzesTable.quizId })
+                  .from(groupQuizzesTable)
+                  .where(eq(groupQuizzesTable.groupId, groupId));
+                
+                const allGroupQuizIds = groupQuizIds.map(gq => gq.quizId);
+                if (allGroupQuizIds.length > 0) {
+                  const allGroupResults = await db.select()
+                    .from(resultsTable)
+                    .where(inArray(resultsTable.quizId, allGroupQuizIds));
+                  
+                  const totalGroupScore = allGroupResults.reduce((sum, r) => sum + (r.score || 0), 0);
+                  const totalGroupPoints = allGroupResults.reduce((sum, r) => sum + (r.totalPoints || 0), 0);
+                  const newGroupAverage = totalGroupPoints > 0
+                    ? Math.round((totalGroupScore / totalGroupPoints) * 100)
+                    : 0;
+                  
+                  // Update group
+                  await storage.updateGroup(groupId, {
+                    totalPoints: newGroupPoints,
+                    averageScore: newGroupAverage,
+                  });
+                  
+                  // Update member contribution
+                  await db.update(groupMembersTable)
+                    .set({
+                      contributedPoints: sql`${groupMembersTable.contributedPoints} + ${result.score}`
+                    })
+                    .where(and(
+                      eq(groupMembersTable.groupId, groupId),
+                      eq(groupMembersTable.userId, req.session.userId)
+                    ));
+                  
+                  console.log(`Updated group ${groupId}: +${result.score} points, new total: ${newGroupPoints}, new average: ${newGroupAverage}%`);
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error updating group points:", error);
+          // Don't fail the quiz submission if group update fails
+        }
+      }
       
       await storage.updateStats(req.session.userId, {
         totalQuizzes: newTotalQuizzes,
