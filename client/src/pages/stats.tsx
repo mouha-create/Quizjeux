@@ -15,6 +15,8 @@ import {
 } from "recharts";
 import type { UserStats, QuizResult, Quiz } from "@shared/schema";
 import { badges as badgeDefinitions } from "@shared/schema";
+import { SEO } from "@/components/seo";
+import { AdSenseInArticle, AdSenseAuto } from "@/components/adsense";
 
 const iconMap: Record<string, typeof Trophy> = {
   Trophy,
@@ -120,6 +122,19 @@ function StatsLoading() {
 }
 
 export default function Stats() {
+  return (
+    <>
+      <SEO
+        title="Statistiques - Vos Performances | QuizCraft AI"
+        description="Consultez vos statistiques détaillées, vos badges et vos réalisations dans les quiz."
+        keywords="statistiques, performances, badges, réalisations, quiz"
+      />
+      <StatsContent />
+    </>
+  );
+}
+
+function StatsContent() {
   const { data: stats, isLoading: statsLoading } = useQuery<UserStats>({
     queryKey: ["/api/stats"],
   });
@@ -233,9 +248,9 @@ export default function Stats() {
         animate={{ opacity: 1, y: 0 }}
         className="mb-8"
       >
-        <h1 className="font-heading text-3xl font-bold">Your Stats</h1>
+        <h1 className="font-heading text-3xl font-bold">Vos Statistiques</h1>
         <p className="mt-1 text-muted-foreground">
-          Track your quiz performance and achievements
+          Suivez vos performances et réalisations dans les quiz
         </p>
       </motion.div>
 
@@ -255,15 +270,15 @@ export default function Stats() {
                   </span>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Current Level</p>
+                  <p className="text-sm text-muted-foreground">Niveau Actuel</p>
                   <p className="font-heading text-xl font-bold">
-                    Level {userStats.level}
+                    Niveau {userStats.level}
                   </p>
                 </div>
               </div>
               <div className="flex-1 sm:max-w-xs">
                 <div className="mb-2 flex justify-between text-sm">
-                  <span className="text-muted-foreground">XP Progress</span>
+                  <span className="text-muted-foreground">Progression XP</span>
                   <span className="font-medium">
                     {userStats.xp} / {xpForNextLevel}
                   </span>
@@ -284,28 +299,28 @@ export default function Stats() {
       >
         <StatCard
           icon={Trophy}
-          label="Quizzes Completed"
+          label="Quiz Terminés"
           value={userStats.totalQuizzes}
           gradient="bg-gradient-to-br from-yellow-500 to-orange-500"
         />
         <StatCard
           icon={CheckCircle}
-          label="Questions Answered"
+          label="Questions Répondues"
           value={userStats.totalQuestions}
-          subtext={`${userStats.correctAnswers} correct`}
+          subtext={`${userStats.correctAnswers} correctes`}
           gradient="bg-gradient-to-br from-green-500 to-teal-500"
         />
         <StatCard
           icon={Target}
-          label="Accuracy"
+          label="Précision"
           value={`${accuracy}%`}
           gradient="bg-gradient-to-br from-blue-500 to-cyan-500"
         />
         <StatCard
           icon={Flame}
-          label="Best Streak"
+          label="Meilleure Série"
           value={userStats.bestStreak}
-          subtext={`Current: ${userStats.currentStreak}`}
+          subtext={`Actuelle : ${userStats.currentStreak}`}
           gradient="bg-gradient-to-br from-red-500 to-pink-500"
         />
       </motion.div>
@@ -320,33 +335,37 @@ export default function Stats() {
         >
           <StatCard
             icon={Timer}
-            label="Avg Time per Quiz"
+            label="Temps Moyen par Quiz"
             value={`${Math.floor(averageTimePerQuiz / 60)}:${(averageTimePerQuiz % 60).toString().padStart(2, '0')}`}
             gradient="bg-gradient-to-br from-indigo-500 to-purple-500"
           />
           <StatCard
             icon={Star}
-            label="Average Score"
+            label="Score Moyen"
             value={averageScore}
-            subtext="points per quiz"
+            subtext="points par quiz"
             gradient="bg-gradient-to-br from-amber-500 to-yellow-500"
           />
           <StatCard
             icon={CheckCircle}
-            label="Perfect Scores"
+            label="Scores Parfaits"
             value={perfectScores}
-            subtext={`${perfectScoreRate}% rate`}
+            subtext={`${perfectScoreRate}% de taux`}
             gradient="bg-gradient-to-br from-emerald-500 to-green-500"
           />
           <StatCard
             icon={Activity}
-            label="Total Time"
+            label="Temps Total"
             value={`${Math.floor(totalTimeSpent / 60)}m`}
-            subtext={`${allResults.length} quizzes`}
+            subtext={`${allResults.length} quiz`}
             gradient="bg-gradient-to-br from-cyan-500 to-blue-500"
           />
         </motion.div>
       )}
+
+      <div className="my-6 flex justify-center">
+        <AdSenseAuto />
+      </div>
 
       {/* Charts */}
       {chartData.length > 0 && (
@@ -360,7 +379,7 @@ export default function Stats() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="h-5 w-5" />
-                Accuracy Over Time
+                Précision dans le Temps
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -376,7 +395,7 @@ export default function Stats() {
                         border: "1px solid hsl(var(--border))",
                         borderRadius: "0.5rem",
                       }}
-                      formatter={(value: number) => [`${value}%`, "Accuracy"]}
+                      formatter={(value: number) => [`${value}%`, "Précision"]}
                     />
                     <Line 
                       type="monotone" 
@@ -384,7 +403,7 @@ export default function Stats() {
                       stroke="hsl(var(--primary))"
                       strokeWidth={2}
                       dot={{ fill: "hsl(var(--primary))", r: 4 }}
-                      name="Accuracy"
+                      name="Précision"
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -396,7 +415,7 @@ export default function Stats() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Star className="h-5 w-5" />
-                Score History
+                Historique des Scores
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -441,7 +460,7 @@ export default function Stats() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Zap className="h-5 w-5" />
-                  XP Progression
+                  Progression XP
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -457,7 +476,7 @@ export default function Stats() {
                           border: "1px solid hsl(var(--border))",
                           borderRadius: "0.5rem",
                         }}
-                        formatter={(value: number) => [value, "Total XP"]}
+                        formatter={(value: number) => [value, "XP Total"]}
                       />
                       <Area 
                         type="monotone" 
@@ -465,7 +484,7 @@ export default function Stats() {
                         stroke="hsl(var(--primary))"
                         fill="hsl(var(--primary))"
                         fillOpacity={0.3}
-                        name="Total XP"
+                        name="XP Total"
                       />
                     </AreaChart>
                   </ResponsiveContainer>
@@ -479,7 +498,7 @@ export default function Stats() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Clock className="h-5 w-5" />
-                  Time Spent per Quiz
+                  Temps Passé par Quiz
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -498,14 +517,14 @@ export default function Stats() {
                         formatter={(value: number) => {
                           const mins = Math.floor(value / 60);
                           const secs = value % 60;
-                          return [`${mins}:${secs.toString().padStart(2, '0')}`, "Time"];
+                          return [`${mins}:${secs.toString().padStart(2, '0')}`, "Temps"];
                         }}
                       />
                       <Bar 
                         dataKey="time" 
                         fill="hsl(var(--primary))"
                         radius={[4, 4, 0, 0]}
-                        name="Time (seconds)"
+                        name="Temps (secondes)"
                       />
                     </BarChart>
                   </ResponsiveContainer>
@@ -528,7 +547,7 @@ export default function Stats() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <BarChart3 className="h-5 w-5" />
-                Score Distribution
+                Distribution des Scores
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -569,7 +588,7 @@ export default function Stats() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Award className="h-5 w-5" />
-              Badges & Achievements
+              Badges & Réalisations
             </CardTitle>
           </CardHeader>
           <CardContent>
