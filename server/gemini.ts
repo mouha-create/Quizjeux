@@ -20,6 +20,37 @@ interface GenerateQuestionsParams {
   questionTypes: QuestionType[];
 }
 
+// Helper function to get available models
+async function getAvailableModels(): Promise<string[]> {
+  if (!gemini) {
+    return [];
+  }
+
+  try {
+    // Try to list models using the REST API directly
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models?key=${process.env.GOOGLE_API_KEY}`
+    );
+    
+    if (response.ok) {
+      const data = await response.json();
+      if (data.models && Array.isArray(data.models)) {
+        const modelNames = data.models
+          .filter((m: any) => m.supportedGenerationMethods?.includes("generateContent"))
+          .map((m: any) => m.name?.replace("models/", "") || "")
+          .filter((name: string) => name && name.startsWith("gemini"));
+        console.log("Available Gemini models:", modelNames);
+        return modelNames;
+      }
+    }
+  } catch (error) {
+    console.warn("Could not fetch available models:", error);
+  }
+
+  // Fallback to common model names if listing fails
+  return ["gemini-1.5-flash-latest", "gemini-1.5-pro-latest", "gemini-pro", "gemini-1.5-flash", "gemini-1.5-pro"];
+}
+
 export async function generateQuestions(params: GenerateQuestionsParams): Promise<Question[]> {
   if (!gemini) {
     throw new Error("Google API key is not configured. Please add your GOOGLE_API_KEY to use AI generation.");
@@ -84,14 +115,21 @@ Respond with a JSON object in this exact format:
 
 Make questions engaging, educational, and accurate. Ensure there is variety in the questions and that they cover different aspects of the topic. Always respond with valid JSON only, no additional text.`;
 
-  // Try multiple model names in order of preference
-  const modelNames = ["gemini-pro", "gemini-1.5-flash", "gemini-1.5-pro"];
+  // Get available models or use fallback list
+  const availableModels = await getAvailableModels();
+  const modelNames = availableModels.length > 0 
+    ? availableModels 
+    : ["gemini-1.5-flash-latest", "gemini-1.5-pro-latest", "gemini-pro", "gemini-1.5-flash", "gemini-1.5-pro"];
+  
   let lastError: Error | null = null;
 
   for (const modelName of modelNames) {
+    // Remove "models/" prefix if present
+    const cleanModelName = modelName.replace("models/", "");
     try {
+      console.log(`Trying Gemini model: ${cleanModelName}`);
       const model = gemini.getGenerativeModel({ 
-        model: modelName,
+        model: cleanModelName,
         systemInstruction: "You are an expert quiz creator who generates engaging, accurate, and educational quiz questions. Always respond with valid JSON only, no additional text.",
         generationConfig: {
           temperature: 0.7,
@@ -143,10 +181,10 @@ Make questions engaging, educational, and accurate. Ensure there is variety in t
         throw new Error("No questions generated");
       }
 
-      console.log(`Successfully generated questions using model: ${modelName}`);
+      console.log(`Successfully generated questions using model: ${cleanModelName}`);
       return questions;
     } catch (error) {
-      console.error(`Error with model ${modelName}:`, error);
+      console.error(`Error with model ${cleanModelName}:`, error);
       lastError = error instanceof Error ? error : new Error(String(error));
       // Continue to next model
       continue;
