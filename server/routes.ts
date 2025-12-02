@@ -3,9 +3,13 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { generateQuestions as generateQuestionsAnthropic } from "./anthropic";
 import { generateQuestions as generateQuestionsOpenAI } from "./openai";
+import { generateQuestions as generateQuestionsGemini } from "./gemini";
 import { insertQuizSchema, aiGenerateRequestSchema, loginSchema, signupSchema } from "@shared/schema";
-import type { Question, QuizResult } from "@shared/schema";
+import type { Question, QuizResult, UserStats } from "@shared/schema";
 import { hashPassword, verifyPassword } from "./auth";
+import { db } from "./database";
+import { resultsTable, quizzesTable } from "@shared/schema";
+import { eq } from "drizzle-orm";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -274,8 +278,6 @@ export async function registerRoutes(
         try {
           if (process.env.OPENAI_API_KEY) {
             questions = await generateQuestionsOpenAI(validationResult.data);
-          } else {
-            throw new Error("No AI provider configured. Please add ANTHROPIC_API_KEY or OPENAI_API_KEY.");
           }
         } catch (openaiError: any) {
           console.error("OpenAI generation error:", openaiError);
@@ -283,11 +285,25 @@ export async function registerRoutes(
         }
       }
 
+      // Fallback to Gemini if both Anthropic and OpenAI failed or not configured
+      if (!questions) {
+        try {
+          if (process.env.GOOGLE_API_KEY) {
+            questions = await generateQuestionsGemini(validationResult.data);
+          } else {
+            throw new Error("No AI provider configured. Please add ANTHROPIC_API_KEY, OPENAI_API_KEY, or GOOGLE_API_KEY.");
+          }
+        } catch (geminiError: any) {
+          console.error("Gemini generation error:", geminiError);
+          lastError = geminiError instanceof Error ? geminiError : new Error(String(geminiError));
+        }
+      }
+
       if (questions) {
         return res.json({ questions });
       }
 
-      // If both failed, return a user-friendly error
+      // If all failed, return a user-friendly error
       const userMessage = lastError?.message?.includes("crédit") || lastError?.message?.includes("credit")
         ? "Le service de génération IA n'est pas disponible actuellement. Veuillez créer vos questions manuellement."
         : "Impossible de générer des questions. Veuillez réessayer ou créer vos questions manuellement.";
