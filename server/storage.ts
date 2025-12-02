@@ -495,26 +495,51 @@ export class DatabaseStorage implements IStorage {
       const allUsers = await db.select().from(usersTable);
       const userMap = new Map(allUsers.map(u => [u.id, u.username]));
       
-      const leaderboard: LeaderboardEntry[] = allStats
-        .map((stats, index) => {
+      const userLeaderboard: LeaderboardEntry[] = allStats
+        .map((stats) => {
           const username = userMap.get(stats.userId) || "Unknown";
           const accuracy = stats.totalQuestions > 0
             ? Math.round((stats.correctAnswers / stats.totalQuestions) * 100)
             : 0;
           
           return {
-            rank: index + 1,
+            rank: 0, // Will be set after merging with groups
             name: username,
             score: stats.totalPoints || 0,
             quizzes: stats.totalQuizzes || 0,
             accuracy: accuracy,
+            type: "user" as const,
           };
         })
-        .filter(entry => entry.score > 0) // Only include users with points
+        .filter(entry => entry.score > 0);
+      
+      // Get all groups ordered by total points
+      const allGroups = await db.select()
+        .from(groupsTable)
+        .orderBy(desc(groupsTable.totalPoints))
+        .where(sql`${groupsTable.totalPoints} > 0`);
+      
+      const groupLeaderboard: LeaderboardEntry[] = allGroups.map((group) => ({
+        rank: 0, // Will be set after merging
+        name: group.name,
+        score: group.totalPoints || 0,
+        quizzes: group.totalQuizzes || 0,
+        accuracy: group.averageScore || 0,
+        type: "group" as const,
+        groupId: group.id,
+      }));
+      
+      // Merge and sort by score
+      const combined = [...userLeaderboard, ...groupLeaderboard]
+        .sort((a, b) => b.score - a.score)
+        .map((entry, index) => ({
+          ...entry,
+          rank: index + 1,
+        }))
         .slice(0, 100); // Limit to top 100
       
-      console.log(`Leaderboard: ${leaderboard.length} entries`);
-      return leaderboard;
+      console.log(`Leaderboard: ${combined.length} entries (${userLeaderboard.length} users, ${groupLeaderboard.length} groups)`);
+      return combined;
     } catch (error) {
       console.error("Error getting leaderboard:", error);
       return [];
