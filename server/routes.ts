@@ -184,14 +184,20 @@ export async function registerRoutes(
       const quiz = await storage.createQuiz(quizData);
       console.log("Quiz created successfully with ID:", quiz.id);
       
-      // Award "Creator" badge if user hasn't earned it yet
+      // Award creator badges using the new badge system
       const currentStats = await storage.getStats(req.session.userId);
-      if (!currentStats.badges?.includes("creator")) {
-        const newBadges = [...(currentStats.badges || []), "creator"];
+      const existingResults = await storage.getResults(req.session.userId);
+      const enhancedStats = {
+        ...currentStats,
+        createdQuizzes: (currentStats.createdQuizzes || 0) + 1,
+      };
+      const earnedBadges = (storage as any).calculateBadges(enhancedStats, undefined, existingResults);
+      if (earnedBadges.length > (currentStats.badges?.length || 0)) {
         await storage.updateStats(req.session.userId, {
-          badges: newBadges,
+          badges: earnedBadges,
+          createdQuizzes: enhancedStats.createdQuizzes,
         });
-        console.log(`Awarded "Creator" badge to user ${req.session.userId}`);
+        console.log(`Updated badges for user ${req.session.userId}, earned: ${earnedBadges.join(", ")}`);
       }
       
       res.status(201).json(quiz);
@@ -456,8 +462,9 @@ export async function registerRoutes(
         quizHistory: [...(currentStats.quizHistory || []), savedResult.id].slice(-50),
       };
       
-      // Calculate badges
-      const earnedBadges = (storage as any).calculateBadges(newStats, result);
+      // Calculate badges - pass existing results for accurate perfect score counting
+      const existingResults = await storage.getResults(req.session.userId);
+      const earnedBadges = (storage as any).calculateBadges(newStats, result, existingResults);
       const newBadges = earnedBadges.length > (currentStats.badges?.length || 0) 
         ? earnedBadges 
         : (currentStats.badges || []);

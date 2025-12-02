@@ -67,7 +67,7 @@ function BadgeCard({
   id: string;
   earned: boolean;
 }) {
-  const badge = badgeDefinitions[id as keyof typeof badgeDefinitions];
+  const badge = badgeDefinitions[id];
   if (!badge) return null;
   
   const Icon = iconMap[badge.icon] || Trophy;

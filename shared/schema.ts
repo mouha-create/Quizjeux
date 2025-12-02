@@ -106,19 +106,13 @@ export const userStatsSchema = z.object({
 
 export type UserStats = z.infer<typeof userStatsSchema>;
 
-// Badge definitions
-export const badges = {
-  firstQuiz: { id: "firstQuiz", name: "First Steps", description: "Complete your first quiz", icon: "Trophy" },
-  perfectScore: { id: "perfectScore", name: "Perfect!", description: "Get 100% on a quiz", icon: "Star" },
-  streak5: { id: "streak5", name: "On Fire", description: "Get 5 correct answers in a row", icon: "Flame" },
-  streak10: { id: "streak10", name: "Unstoppable", description: "Get 10 correct answers in a row", icon: "Zap" },
-  quizMaster: { id: "quizMaster", name: "Quiz Master", description: "Complete 10 quizzes", icon: "Award" },
-  speedster: { id: "speedster", name: "Speedster", description: "Complete a quiz in under 2 minutes", icon: "Clock" },
-  creator: { id: "creator", name: "Creator", description: "Create your first quiz", icon: "Sparkles" },
-  brainiac: { id: "brainiac", name: "Brainiac", description: "Answer 100 questions correctly", icon: "Brain" },
-} as const;
+// Badge definitions - Using the new extensible badge system
+import { getAllBadges } from "./badge-rules";
 
-export type BadgeId = keyof typeof badges;
+// Get all badges from the badge rules system
+export const badges = getAllBadges();
+
+export type BadgeId = string;
 
 // AI Quiz generation request
 export const aiGenerateRequestSchema = z.object({

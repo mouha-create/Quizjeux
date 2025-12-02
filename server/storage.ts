@@ -6,6 +6,7 @@ import { randomUUID } from "crypto";
 import { db } from "./database";
 import { usersTable, quizzesTable, resultsTable, userStatsTable, userFavoritesTable } from "@shared/schema";
 import { eq, desc, sql, and } from "drizzle-orm";
+import { generateBadgeRules } from "@shared/badge-rules";
 
 export interface IStorage {
   // Quiz operations
@@ -494,42 +495,53 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  // Calculate which badges should be earned based on stats
-  calculateBadges(stats: UserStats, result?: QuizResult): string[] {
+  // Calculate which badges should be earned based on stats using the new badge rules system
+  calculateBadges(stats: UserStats, result?: QuizResult, allResults?: QuizResult[]): string[] {
     const earnedBadges = new Set<string>(stats.badges || []);
+    const badgeRules = generateBadgeRules();
     
-    // First Quiz
-    if (stats.totalQuizzes >= 1 && !earnedBadges.has("firstQuiz")) {
-      earnedBadges.add("firstQuiz");
-    }
-    
-    // Perfect Score (check current result)
-    if (result && result.correctAnswers === result.totalQuestions && !earnedBadges.has("perfectScore")) {
-      earnedBadges.add("perfectScore");
-    }
-    
-    // Streak badges
-    if (stats.bestStreak >= 5 && !earnedBadges.has("streak5")) {
-      earnedBadges.add("streak5");
-    }
-    if (stats.bestStreak >= 10 && !earnedBadges.has("streak10")) {
-      earnedBadges.add("streak10");
+    // Count perfect scores from results if provided, otherwise estimate from badges
+    let perfectScoresCount = 0;
+    if (allResults) {
+      perfectScoresCount = allResults.filter(r => r.correctAnswers === r.totalQuestions).length;
+      if (result && result.correctAnswers === result.totalQuestions) {
+        perfectScoresCount += 1; // Include current result if it's perfect
+      }
+    } else {
+      // Fallback: estimate from existing perfect badges
+      perfectScoresCount = stats.badges?.filter(b => b.startsWith("perfect_")).length || 0;
+      if (result && result.correctAnswers === result.totalQuestions && !earnedBadges.has("first_perfect")) {
+        perfectScoresCount += 1;
+      }
     }
     
-    // Quiz Master
-    if (stats.totalQuizzes >= 10 && !earnedBadges.has("quizMaster")) {
-      earnedBadges.add("quizMaster");
-    }
+    // Enhanced stats object for badge calculation
+    const enhancedStats: any = {
+      ...stats,
+      perfectScores: perfectScoresCount,
+      createdQuizzes: stats.createdQuizzes || 0,
+      categoryQuizzes: stats.categoryQuizzes || {},
+      difficultyQuizzes: stats.difficultyQuizzes || {},
+      themeQuizzes: stats.themeQuizzes || {},
+      timeQuizzes: stats.timeQuizzes || {},
+      questionTypeStats: stats.questionTypeStats || {},
+      dailyStreak: stats.dailyStreak || 0,
+      weeklyStreak: stats.weeklyStreak || 0,
+      monthlyStreak: stats.monthlyStreak || 0,
+    };
     
-    // Speedster (check current result - under 2 minutes = 120 seconds)
-    if (result && result.timeSpent < 120 && !earnedBadges.has("speedster")) {
-      earnedBadges.add("speedster");
-    }
-    
-    // Brainiac
-    if (stats.correctAnswers >= 100 && !earnedBadges.has("brainiac")) {
-      earnedBadges.add("brainiac");
-    }
+    // Check each badge rule
+    badgeRules.forEach((rule) => {
+      if (!earnedBadges.has(rule.id)) {
+        try {
+          if (rule.condition(enhancedStats, result)) {
+            earnedBadges.add(rule.id);
+          }
+        } catch (error) {
+          console.error(`Error checking badge ${rule.id}:`, error);
+        }
+      }
+    });
     
     return Array.from(earnedBadges);
   }
