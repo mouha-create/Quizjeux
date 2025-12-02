@@ -5,37 +5,38 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/lib/auth-context";
 import { SEO } from "@/components/seo";
+import { AdSenseAutorelaxed, AdSenseFluid } from "@/components/adsense";
 
 const features = [
   {
     icon: Sparkles,
-    title: "AI-Powered Generation",
-    description: "Create professional quizzes in seconds from any topic using AI",
+    title: "Génération par IA",
+    description: "Créez des quiz professionnels en quelques secondes sur n'importe quel sujet grâce à l'IA",
   },
   {
     icon: Brain,
-    title: "4 Question Types",
-    description: "Multiple choice, true/false, short text, and ranking questions",
+    title: "4 Types de Questions",
+    description: "Choix multiples, vrai/faux, texte court et questions de classement",
   },
   {
     icon: Target,
-    title: "Difficulty Levels",
-    description: "Beginner, intermediate, and expert modes for any audience",
+    title: "Niveaux de Difficulté",
+    description: "Modes débutant, intermédiaire et expert pour tous les publics",
   },
   {
     icon: Trophy,
     title: "Gamification",
-    description: "XP, levels, badges, and streaks to keep learners engaged",
+    description: "XP, niveaux, badges et séries pour maintenir l'engagement des apprenants",
   },
   {
     icon: Clock,
-    title: "Timed Quizzes",
-    description: "Optional timers with dramatic countdown for competitive play",
+    title: "Quiz Chronométrés",
+    description: "Minuteurs optionnels avec compte à rebours pour un jeu compétitif",
   },
   {
     icon: Users,
-    title: "Easy Sharing",
-    description: "Share quizzes via unique links with anyone",
+    title: "Partage Facile",
+    description: "Partagez vos quiz via des liens uniques avec n'importe qui",
   },
 ];
 
@@ -130,14 +131,14 @@ function HomeContent() {
               className="text-center lg:text-left"
             >
               <h1 className="font-heading text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
-                Create Stunning Quizzes with{" "}
+                Créez des Quiz Époustouflants avec{" "}
                 <span className="bg-gradient-to-r from-yellow-200 to-yellow-400 bg-clip-text text-transparent">
-                  AI Magic
+                  la Magie de l'IA
                 </span>
               </h1>
               <p className="mt-6 text-lg text-purple-100 sm:text-xl">
-                Build engaging, interactive quizzes in minutes. Perfect for education, 
-                marketing, and recruitment. Powered by AI for instant question generation.
+                Créez des quiz interactifs et engageants en quelques minutes. Parfait pour l'éducation, 
+                le marketing et le recrutement. Alimenté par l'IA pour une génération instantanée de questions.
               </p>
               <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:justify-center lg:justify-start">
                 <Button 
@@ -148,7 +149,7 @@ function HomeContent() {
                   onClick={handleCreateClick}
                 >
                   <Sparkles className="h-5 w-5" />
-                  Create with AI
+                  Créer avec l'IA
                 </Button>
                 <Button 
                   size="lg" 
@@ -158,7 +159,7 @@ function HomeContent() {
                   onClick={handleBrowseClick}
                 >
                   <Play className="h-5 w-5" />
-                  Browse Quizzes
+                  Parcourir les Quiz
                 </Button>
               </div>
             </motion.div>
@@ -175,7 +176,7 @@ function HomeContent() {
                 <CardContent className="p-6">
                   <div className="mb-4 flex items-center justify-between">
                     <span className="rounded-full bg-purple-100 px-3 py-1 text-sm font-medium text-purple-700 dark:bg-purple-900/50 dark:text-purple-300">
-                      Question 3 of 10
+                      Question 3 sur 10
                     </span>
                     <span className="flex items-center gap-1 text-sm text-muted-foreground">
                       <Clock className="h-4 w-4" />
@@ -183,10 +184,10 @@ function HomeContent() {
                     </span>
                   </div>
                   <h3 className="mb-6 text-xl font-semibold">
-                    What is the capital of France?
+                    Quelle est la capitale de la France ?
                   </h3>
                   <div className="space-y-3">
-                    {["London", "Paris", "Berlin", "Madrid"].map((option, i) => (
+                    {["Londres", "Paris", "Berlin", "Madrid"].map((option, i) => (
                       <div
                         key={option}
                         className={`flex cursor-pointer items-center gap-3 rounded-lg border-2 p-4 transition-all ${
@@ -227,13 +228,17 @@ function HomeContent() {
             className="text-center"
           >
             <h2 className="font-heading text-3xl font-bold sm:text-4xl">
-              Everything You Need to Create Amazing Quizzes
+              Tout ce dont vous avez besoin pour créer des quiz incroyables
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
-              Powerful features to help you create, manage, and share engaging quizzes
-              that captivate your audience.
+              Des fonctionnalités puissantes pour vous aider à créer, gérer et partager des quiz engageants
+              qui captivent votre audience.
             </p>
           </motion.div>
+
+          <div className="my-8 flex justify-center">
+            <AdSenseAutorelaxed />
+          </div>
 
           <motion.div
             variants={containerVariants}
@@ -273,19 +278,22 @@ function HomeContent() {
           className="mx-auto max-w-4xl text-center"
         >
           <h2 className="font-heading text-3xl font-bold sm:text-4xl">
-            Ready to Create Your First Quiz?
+            Prêt à créer votre premier quiz ?
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
-            Join thousands of educators, marketers, and HR professionals who use
-            QuizCraft to create engaging quizzes.
+            Rejoignez des milliers d'éducateurs, de marketeurs et de professionnels RH qui utilisent
+            QuizCraft pour créer des quiz engageants.
           </p>
+          <div className="my-8 flex justify-center">
+            <AdSenseFluid />
+          </div>
           <Button 
             size="lg" 
             className="mt-8 gap-2" 
             data-testid="button-cta-create"
             onClick={handleCreateClick}
           >
-            Get Started Free
+            Commencer Gratuitement
             <ChevronRight className="h-5 w-5" />
           </Button>
         </motion.div>

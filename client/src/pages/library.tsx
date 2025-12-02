@@ -30,6 +30,7 @@ import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { getThemeClasses } from "@/lib/quiz-themes";
 import { SEO } from "@/components/seo";
+import { AdSenseInArticle, AdSenseAuto } from "@/components/adsense";
 import type { Quiz, QuizTheme, DifficultyLevel, QuizCategory } from "@shared/schema";
 import { quizThemes, difficultyLevels, quizCategories } from "@shared/schema";
 import { useState } from "react";
@@ -114,14 +115,14 @@ function LibraryContent() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/quizzes"] });
       toast({
-        title: "Quiz deleted",
-        description: "The quiz has been permanently deleted.",
+        title: "Quiz supprimé",
+        description: "Le quiz a été définitivement supprimé.",
       });
     },
     onError: () => {
       toast({
-        title: "Error",
-        description: "Failed to delete the quiz. Please try again.",
+        title: "Erreur",
+        description: "Échec de la suppression du quiz. Veuillez réessayer.",
         variant: "destructive",
       });
     },
@@ -134,8 +135,8 @@ function LibraryContent() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/quizzes"] });
       toast({
-        title: "Quiz duplicated",
-        description: "A copy of the quiz has been created.",
+        title: "Quiz dupliqué",
+        description: "Une copie du quiz a été créée.",
       });
     },
   });
@@ -155,8 +156,8 @@ function LibraryContent() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/favorites"] });
       toast({
-        title: "Favorite updated",
-        description: "Your favorites list has been updated.",
+        title: "Favori mis à jour",
+        description: "Votre liste de favoris a été mise à jour.",
       });
     },
   });
@@ -166,12 +167,12 @@ function LibraryContent() {
     try {
       await navigator.clipboard.writeText(shareUrl);
       toast({
-        title: "Link copied!",
-        description: "Quiz link has been copied to clipboard.",
+        title: "Lien copié !",
+        description: "Le lien du quiz a été copié dans le presse-papiers.",
       });
     } catch {
       toast({
-        title: "Share",
+        title: "Partager",
         description: shareUrl,
       });
     }
@@ -201,17 +202,21 @@ function LibraryContent() {
       {/* Header */}
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-heading text-3xl font-bold">My Quizzes</h1>
+          <h1 className="font-heading text-3xl font-bold">Mes Quiz</h1>
           <p className="mt-1 text-muted-foreground">
-            Manage and organize all your quizzes
+            Gérez et organisez tous vos quiz
           </p>
         </div>
         <Link href="/create">
           <Button className="gap-2" data-testid="button-create-new">
             <Plus className="h-4 w-4" />
-            Create New Quiz
+            Créer un Nouveau Quiz
           </Button>
         </Link>
+      </div>
+
+      <div className="my-6 flex justify-center">
+        <AdSenseAuto />
       </div>
 
       {/* Search and Filters */}
@@ -219,7 +224,7 @@ function LibraryContent() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search quizzes by title or description..."
+            placeholder="Rechercher des quiz par titre ou description..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9"
@@ -229,14 +234,14 @@ function LibraryContent() {
         <div className="flex flex-wrap gap-3">
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">Filters:</span>
+            <span className="text-sm text-muted-foreground">Filtres :</span>
           </div>
           <Select value={selectedTheme} onValueChange={(v) => setSelectedTheme(v as QuizTheme | "all")}>
             <SelectTrigger className="w-[140px]" data-testid="select-theme-filter">
-              <SelectValue placeholder="All Themes" />
+              <SelectValue placeholder="Tous les Thèmes" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Themes</SelectItem>
+              <SelectItem value="all">Tous les Thèmes</SelectItem>
               {quizThemes.map((theme) => (
                 <SelectItem key={theme} value={theme}>
                   {theme.charAt(0).toUpperCase() + theme.slice(1)}
@@ -246,7 +251,7 @@ function LibraryContent() {
           </Select>
           <Select value={selectedDifficulty} onValueChange={(v) => setSelectedDifficulty(v as DifficultyLevel | "all")}>
             <SelectTrigger className="w-[140px]" data-testid="select-difficulty-filter">
-              <SelectValue placeholder="All Difficulties" />
+              <SelectValue placeholder="Toutes les Difficultés" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Difficulties</SelectItem>
@@ -259,10 +264,10 @@ function LibraryContent() {
           </Select>
           <Select value={selectedCategory} onValueChange={(v) => setSelectedCategory(v as QuizCategory | "all")}>
             <SelectTrigger className="w-[140px]" data-testid="select-category-filter">
-              <SelectValue placeholder="All Categories" />
+              <SelectValue placeholder="Toutes les Catégories" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
+              <SelectItem value="all">Toutes les Catégories</SelectItem>
               {quizCategories.map((category) => (
                 <SelectItem key={category} value={category}>
                   {category}
@@ -282,7 +287,7 @@ function LibraryContent() {
               }}
               className="text-muted-foreground"
             >
-              Clear filters
+              Effacer les filtres
             </Button>
           )}
         </div>
@@ -314,7 +319,7 @@ function LibraryContent() {
                       </h3>
                     </div>
                     <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
-                      {quiz.description || "No description"}
+                      {quiz.description || "Aucune description"}
                     </p>
                   </div>
                   <div className="flex items-center gap-1">
@@ -347,7 +352,7 @@ function LibraryContent() {
                       <DropdownMenuItem asChild>
                         <Link href={`/edit/${quiz.id}`} className="flex items-center gap-2">
                           <Edit2 className="h-4 w-4" />
-                          Edit
+                          Modifier
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem 
@@ -355,21 +360,21 @@ function LibraryContent() {
                         className="gap-2"
                       >
                         <Copy className="h-4 w-4" />
-                        Duplicate
+                        Dupliquer
                       </DropdownMenuItem>
                       <DropdownMenuItem 
                         onClick={() => handleShare(quiz)}
                         className="gap-2"
                       >
                         <Share2 className="h-4 w-4" />
-                        Share
+                        Partager
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => setDeleteQuizId(quiz.id)}
                         className="gap-2 text-destructive focus:text-destructive"
                       >
                         <Trash2 className="h-4 w-4" />
-                        Delete
+                        Supprimer
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                     </DropdownMenu>
@@ -383,7 +388,7 @@ function LibraryContent() {
                     </Badge>
                     <Badge variant="secondary" className="gap-1">
                       <Users className="h-3 w-3" />
-                      {quiz.plays} plays
+                      {quiz.plays} parties
                     </Badge>
                     {quiz.category && (
                       <Badge variant="outline" className="gap-1">
@@ -403,7 +408,7 @@ function LibraryContent() {
                     )}
                     {!quiz.isPublic && (
                       <Badge variant="secondary" className="gap-1">
-                        Private
+                        Privé
                       </Badge>
                     )}
                   </div>
@@ -412,7 +417,7 @@ function LibraryContent() {
                   <Link href={`/play/${quiz.id}`} className="flex-1">
                     <Button className="w-full gap-2" data-testid={`button-play-${quiz.id}`}>
                       <Play className="h-4 w-4" />
-                      Play
+                      Jouer
                     </Button>
                   </Link>
                   <Button 
@@ -437,15 +442,15 @@ function LibraryContent() {
           <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
             <Sparkles className="h-8 w-8 text-muted-foreground" />
           </div>
-          <h3 className="font-heading text-xl font-semibold">No quizzes yet</h3>
+          <h3 className="font-heading text-xl font-semibold">Aucun quiz pour le moment</h3>
           <p className="mt-2 max-w-sm text-muted-foreground">
-            Create your first quiz to get started. Use AI to generate questions
-            instantly!
+            Créez votre premier quiz pour commencer. Utilisez l'IA pour générer des questions
+            instantanément !
           </p>
           <Link href="/create">
             <Button className="mt-6 gap-2" data-testid="button-empty-create">
               <Plus className="h-4 w-4" />
-              Create Your First Quiz
+              Créer Votre Premier Quiz
             </Button>
           </Link>
         </motion.div>
@@ -455,13 +460,13 @@ function LibraryContent() {
       <AlertDialog open={!!deleteQuizId} onOpenChange={() => setDeleteQuizId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Quiz</AlertDialogTitle>
+            <AlertDialogTitle>Supprimer le Quiz</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this quiz? This action cannot be undone.
+              Êtes-vous sûr de vouloir supprimer ce quiz ? Cette action est irréversible.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 if (deleteQuizId) {
@@ -471,7 +476,7 @@ function LibraryContent() {
               }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              Supprimer
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

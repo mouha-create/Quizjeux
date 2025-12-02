@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { SEO } from "@/components/seo";
+import { AdSenseInArticle } from "@/components/adsense";
 import { useState } from "react";
 import type { Group } from "@shared/schema";
 
@@ -268,6 +269,10 @@ function GroupsContent() {
           </div>
         </motion.div>
       )}
+
+      <div className="my-6 flex justify-center">
+        <AdSenseInArticle />
+      </div>
 
       {/* All Groups */}
       <motion.div

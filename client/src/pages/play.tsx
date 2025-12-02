@@ -17,6 +17,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { getThemeGradient, getThemeClasses } from "@/lib/quiz-themes";
 import { triggerConfetti, triggerCelebration } from "@/lib/confetti";
 import { SEO } from "@/components/seo";
+import { AdSenseInArticle } from "@/components/adsense";
 import type { Quiz, Question, QuizResult } from "@shared/schema";
 
 function QuizLoading() {
@@ -174,7 +175,7 @@ function RankingQuestion({
           className="mt-4 w-full"
           data-testid="button-submit-ranking"
         >
-          Submit Order
+          Valider l'Ordre
         </Button>
       )}
     </div>
@@ -458,8 +459,12 @@ export default function Play() {
                 <Trophy className="h-12 w-12 text-white" />
               </motion.div>
 
-              <h1 className="font-heading text-3xl font-bold">Quiz Complete!</h1>
+              <h1 className="font-heading text-3xl font-bold">Quiz Terminé !</h1>
               <p className="mt-2 text-muted-foreground">{quiz.title}</p>
+
+              <div className="my-6 flex justify-center">
+                <AdSenseInArticle />
+              </div>
 
               {/* Score Circle */}
               <motion.div
@@ -470,7 +475,7 @@ export default function Play() {
               >
                 <div className="text-center">
                   <span className="font-heading text-5xl font-bold" translate="no">{accuracy}%</span>
-                  <p className="text-sm text-muted-foreground" translate="no">Accuracy</p>
+                  <p className="text-sm text-muted-foreground" translate="no">Précision</p>
                 </div>
               </motion.div>
 
@@ -479,7 +484,7 @@ export default function Play() {
                 <div className="rounded-lg bg-muted p-4">
                   <CheckCircle className="mx-auto mb-2 h-6 w-6 text-green-500" />
                   <p className="font-heading text-2xl font-bold" translate="no">{Number(result.correctAnswers) || 0}</p>
-                  <p className="text-xs text-muted-foreground">Correct</p>
+                  <p className="text-xs text-muted-foreground">Correctes</p>
                 </div>
                 <div className="rounded-lg bg-muted p-4">
                   <Target className="mx-auto mb-2 h-6 w-6 text-blue-500" />
@@ -489,13 +494,13 @@ export default function Play() {
                 <div className="rounded-lg bg-muted p-4">
                   <Flame className="mx-auto mb-2 h-6 w-6 text-orange-500" />
                   <p className="font-heading text-2xl font-bold" translate="no">{Number(result.streak) || 0}</p>
-                  <p className="text-xs text-muted-foreground">Best Streak</p>
+                  <p className="text-xs text-muted-foreground">Meilleure Série</p>
                 </div>
               </div>
 
               {/* Time */}
               <p className="mb-6 text-muted-foreground">
-                Completed in {formatTime(Number(result.timeSpent) || 0)}
+                Terminé en {formatTime(Number(result.timeSpent) || 0)}
               </p>
 
               {/* Actions */}
@@ -513,7 +518,7 @@ export default function Play() {
                   data-testid="button-retake"
                 >
                   <RotateCcw className="h-4 w-4" />
-                  Retake Quiz
+                  Rejouer le Quiz
                 </Button>
                 <Button
                   variant="outline"
@@ -522,14 +527,14 @@ export default function Play() {
                   data-testid="button-share-result"
                 >
                   <Share2 className="h-4 w-4" />
-                  Share
+                  Partager
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => navigate("/library")}
                   data-testid="button-back-library"
                 >
-                  Back to Library
+                  Retour à la Bibliothèque
                 </Button>
               </div>
             </CardContent>
@@ -553,12 +558,12 @@ export default function Play() {
         {/* Progress Header */}
         <div className="mb-4 flex items-center justify-between text-white">
           <Badge variant="secondary" className="bg-white/20 text-white">
-            Question {currentQuestion + 1} of {quiz.questions.length}
+            Question {currentQuestion + 1} sur {quiz.questions.length}
           </Badge>
           {streak > 0 && (
             <Badge className="gap-1 bg-orange-500">
               <Flame className="h-3 w-3" />
-              {streak} streak
+              {streak} série
             </Badge>
           )}
           {timeLeft !== null && (
@@ -585,10 +590,10 @@ export default function Play() {
             <Card>
               <CardContent className="p-8">
                 <Badge variant="secondary" className="mb-4">
-                  {question.type === "multiple" && "Multiple Choice"}
-                  {question.type === "truefalse" && "True or False"}
-                  {question.type === "text" && "Short Answer"}
-                  {question.type === "ranking" && "Put in Order"}
+                  {question.type === "multiple" && "Choix Multiple"}
+                  {question.type === "truefalse" && "Vrai ou Faux"}
+                  {question.type === "text" && "Réponse Courte"}
+                  {question.type === "ranking" && "Mettre en Ordre"}
                 </Badge>
 
                 <h2 className="mb-8 font-heading text-xl font-semibold sm:text-2xl">
@@ -619,7 +624,7 @@ export default function Play() {
                     <Input
                       value={textAnswer}
                       onChange={(e) => setTextAnswer(e.target.value)}
-                      placeholder="Type your answer..."
+                      placeholder="Tapez votre réponse..."
                       className="text-lg"
                       data-testid="input-text-answer"
                     />
@@ -628,7 +633,7 @@ export default function Play() {
                       disabled={!textAnswer.trim()}
                       className="w-full"
                     >
-                      Submit Answer
+                      Valider la Réponse
                     </Button>
                   </div>
                 )}
@@ -639,9 +644,9 @@ export default function Play() {
                       ? "border-green-500 bg-green-50 dark:bg-green-900/20"
                       : "border-red-500 bg-red-50 dark:bg-red-900/20"
                   }`}>
-                    <p className="font-medium">Your answer: {answers[question.id] as string}</p>
+                    <p className="font-medium">Votre réponse : {answers[question.id] as string}</p>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      Correct answer: {question.correctAnswer as string}
+                      Bonne réponse : {question.correctAnswer as string}
                     </p>
                   </div>
                 )}
@@ -662,7 +667,7 @@ export default function Play() {
                     animate={{ opacity: 1, y: 0 }}
                     className="mt-6 rounded-lg bg-muted p-4"
                   >
-                    <p className="text-sm font-medium">Explanation</p>
+                    <p className="text-sm font-medium">Explication</p>
                     <p className="mt-1 text-sm text-muted-foreground">
                       {question.explanation}
                     </p>
@@ -683,12 +688,12 @@ export default function Play() {
                     >
                       {currentQuestion < quiz.questions.length - 1 ? (
                         <>
-                          Next Question
+                          Question Suivante
                           <ChevronRight className="h-4 w-4" />
                         </>
                       ) : (
                         <>
-                          See Results
+                          Voir les Résultats
                           <Trophy className="h-4 w-4" />
                         </>
                       )}
