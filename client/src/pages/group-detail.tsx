@@ -52,6 +52,8 @@ export default function GroupDetail() {
   const [, navigate] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [selectedQuizIds, setSelectedQuizIds] = useState<string[]>([]);
 
   const { data: group, isLoading: groupLoading, refetch: refetchGroup } = useQuery<Group>({
     queryKey: ["/api/groups", id],
