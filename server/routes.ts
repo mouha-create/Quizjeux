@@ -759,5 +759,20 @@ export async function registerRoutes(
     }
   });
 
+  // Groups leaderboard/ranking
+  app.get("/api/groups/leaderboard", async (req, res) => {
+    try {
+      const groups = await storage.getGroups();
+      // Sort by total points (descending)
+      const sorted = groups
+        .sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0))
+        .slice(0, 100); // Top 100
+      res.json(sorted);
+    } catch (error) {
+      console.error("Error fetching groups leaderboard:", error);
+      res.status(500).json({ error: "Failed to fetch groups leaderboard" });
+    }
+  });
+
   return httpServer;
 }

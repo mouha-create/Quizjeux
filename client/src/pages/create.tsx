@@ -23,8 +23,11 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { quizThemeColors } from "@/lib/quiz-themes";
-import type { Question, QuestionType, QuizTheme, DifficultyLevel, InsertQuiz, QuizCategory } from "@shared/schema";
+import type { Question, QuestionType, QuizTheme, DifficultyLevel, InsertQuiz, QuizCategory, Group } from "@shared/schema";
 import { quizThemes, questionTypes, difficultyLevels, quizCategories } from "@shared/schema";
+import { useQuery } from "@tanstack/react-query";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Users } from "lucide-react";
 
 const steps = ["Details", "Questions", "Settings"];
 
@@ -319,6 +322,7 @@ export default function Create() {
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [isPublic, setIsPublic] = useState(true);
+  const [sharedWithGroups, setSharedWithGroups] = useState<string[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [timeLimit, setTimeLimit] = useState<number | undefined>(undefined);
   const [enableTimer, setEnableTimer] = useState(false);
@@ -471,6 +475,7 @@ export default function Create() {
       category,
       tags,
       isPublic,
+      sharedWithGroups: sharedWithGroups.length > 0 ? sharedWithGroups : undefined,
       timeLimit: enableTimer ? timeLimit : undefined,
     };
 
@@ -862,6 +867,48 @@ export default function Create() {
                   </div>
                 )}
 
+                {/* Share with Groups */}
+                {myGroups && myGroups.length > 0 && (
+                  <div>
+                    <Label className="flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      Partager avec des Groupes
+                    </Label>
+                    <p className="mt-1 mb-3 text-sm text-muted-foreground">
+                      Sélectionnez les groupes avec lesquels partager ce quiz
+                    </p>
+                    <div className="space-y-2 rounded-lg border p-4">
+                      {myGroups.map((group) => (
+                        <div key={group.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`group-${group.id}`}
+                            checked={sharedWithGroups.includes(group.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSharedWithGroups([...sharedWithGroups, group.id]);
+                              } else {
+                                setSharedWithGroups(sharedWithGroups.filter(id => id !== group.id));
+                              }
+                            }}
+                          />
+                          <label
+                            htmlFor={`group-${group.id}`}
+                            className="flex flex-1 cursor-pointer items-center justify-between text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                          >
+                            <div className="flex items-center gap-2">
+                              {group.badge && <span>{group.badge}</span>}
+                              <span>{group.name}</span>
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                              {group.memberCount} membres
+                            </span>
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="rounded-lg border bg-muted/50 p-4">
                   <h4 className="font-medium">Quiz Summary</h4>
                   <div className="mt-2 space-y-1 text-sm text-muted-foreground">
@@ -870,6 +917,9 @@ export default function Create() {
                     <p>Theme: {theme.charAt(0).toUpperCase() + theme.slice(1)}</p>
                     <p>Difficulty: {difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}</p>
                     {enableTimer && <p>Time Limit: {timeLimit ? timeLimit / 60 : 5} minutes</p>}
+                    {sharedWithGroups.length > 0 && (
+                      <p>Shared with: {sharedWithGroups.length} groupe(s)</p>
+                    )}
                   </div>
                 </div>
               </CardContent>

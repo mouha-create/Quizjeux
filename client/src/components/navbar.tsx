@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Sparkles, Library, BarChart3, Trophy, Plus, Menu, X, LogOut, User } from "lucide-react";
+import { Sparkles, Library, BarChart3, Trophy, Plus, Menu, X, LogOut, User, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "./theme-toggle";
 import { useAuth } from "@/lib/auth-context";
@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 const navLinks = [
   { href: "/", label: "Home", icon: Sparkles },
   { href: "/library", label: "My Quizzes", icon: Library },
+  { href: "/groups", label: "Groups", icon: Users },
   { href: "/stats", label: "Stats", icon: BarChart3 },
   { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
 ];

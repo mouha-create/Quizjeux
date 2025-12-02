@@ -18,6 +18,9 @@ import Play from "@/pages/play";
 import Stats from "@/pages/stats";
 import Leaderboard from "@/pages/leaderboard";
 import Profile from "@/pages/profile";
+import Groups from "@/pages/groups";
+import CreateGroup from "@/pages/create-group";
+import GroupDetail from "@/pages/group-detail";
 import NotFound from "@/pages/not-found";
 
 class ErrorBoundary extends Component<
@@ -161,6 +164,21 @@ function Router() {
       <Route path="/profile">
         <ProtectedRouteWrapper>
           <Profile />
+        </ProtectedRouteWrapper>
+      </Route>
+      <Route path="/groups">
+        <ProtectedRouteWrapper>
+          <Groups />
+        </ProtectedRouteWrapper>
+      </Route>
+      <Route path="/groups/create">
+        <ProtectedRouteWrapper>
+          <CreateGroup />
+        </ProtectedRouteWrapper>
+      </Route>
+      <Route path="/groups/:id">
+        <ProtectedRouteWrapper>
+          <GroupDetail />
         </ProtectedRouteWrapper>
       </Route>
       <Route component={NotFound} />
