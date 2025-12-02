@@ -22,6 +22,7 @@ import Groups from "@/pages/groups";
 import CreateGroup from "@/pages/create-group";
 import GroupDetail from "@/pages/group-detail";
 import GroupLeaderboard from "@/pages/group-leaderboard";
+import GroupResults from "@/pages/group-results";
 import NotFound from "@/pages/not-found";
 
 class ErrorBoundary extends Component<
@@ -185,6 +186,11 @@ function Router() {
       <Route path="/groups/:id/leaderboard">
         <ProtectedRouteWrapper>
           <GroupLeaderboard />
+        </ProtectedRouteWrapper>
+      </Route>
+      <Route path="/groups/:id/results">
+        <ProtectedRouteWrapper>
+          <GroupResults />
         </ProtectedRouteWrapper>
       </Route>
       <Route component={NotFound} />
