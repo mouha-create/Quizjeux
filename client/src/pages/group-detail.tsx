@@ -64,22 +64,26 @@ export default function GroupDetail() {
     refetchInterval: 30000, // Refetch every 30 seconds to keep stats updated
   });
 
-  const { data: members, isLoading: membersLoading } = useQuery({
+  const { data: members, isLoading: membersLoading, refetch: refetchMembers } = useQuery({
     queryKey: ["/api/groups", id, "members"],
     queryFn: async () => {
       const response = await apiRequest("GET", `/api/groups/${id}/members`);
+      if (!response.ok) return [];
       return response.json();
     },
     enabled: !!id,
+    refetchInterval: 30000, // Refetch every 30 seconds
   });
 
   const { data: quizzes, isLoading: quizzesLoading, refetch: refetchQuizzes } = useQuery<Quiz[]>({
     queryKey: ["/api/groups", id, "quizzes"],
     queryFn: async () => {
       const response = await apiRequest("GET", `/api/groups/${id}/quizzes`);
+      if (!response.ok) return [];
       return response.json();
     },
     enabled: !!id,
+    refetchInterval: 30000, // Refetch every 30 seconds
   });
 
   // Get all user's quizzes for sharing
@@ -104,16 +108,20 @@ export default function GroupDetail() {
       );
       await Promise.all(promises);
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({
         title: "Quiz partagés !",
         description: `${selectedQuizIds.length} quiz partagé(s) avec le groupe`,
       });
       setShareDialogOpen(false);
       setSelectedQuizIds([]);
-      queryClient.invalidateQueries({ queryKey: ["/api/groups", id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/groups", id, "quizzes"] });
-      refetchQuizzes();
+      // Invalidate and refetch all related queries
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["/api/groups", id] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/groups", id, "quizzes"] }),
+        refetchQuizzes(),
+        refetchGroup(),
+      ]);
     },
     onError: (error: any) => {
       toast({
@@ -124,15 +132,19 @@ export default function GroupDetail() {
     },
   });
 
-  const { data: myGroups, refetch: refetchMyGroups } = useQuery({
+  const { data: myGroups, refetch: refetchMyGroups } = useQuery<Group[]>({
     queryKey: ["/api/my-groups"],
     queryFn: async () => {
       const response = await apiRequest("GET", "/api/my-groups");
+      if (!response.ok) return [];
       return response.json();
     },
   });
 
-  const isMember = myGroups?.some((g: Group) => g.id === id) || false;
+  // Check if user is member by checking members list directly
+  const isMemberFromMembers = members?.some((m: any) => m.userId === user?.id) || false;
+  const isMemberFromGroups = myGroups?.some((g: Group) => g.id === id) || false;
+  const isMember = isMemberFromMembers || isMemberFromGroups;
   const isCreator = group?.creatorId === user?.id;
   const member = members?.find((m: any) => m.userId === user?.id);
 
@@ -176,11 +188,14 @@ export default function GroupDetail() {
         title: "Groupe quitté",
         description: `Vous avez quitté "${group?.name}"`,
       });
+      // Invalidate and refetch all related queries
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["/api/groups", id] }),
         queryClient.invalidateQueries({ queryKey: ["/api/my-groups"] }),
         queryClient.invalidateQueries({ queryKey: ["/api/groups", id, "members"] }),
         refetchMyGroups(),
+        refetchGroup(),
+        refetchMembers(),
       ]);
       navigate("/groups");
     },
