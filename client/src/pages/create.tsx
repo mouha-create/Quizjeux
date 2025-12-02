@@ -23,13 +23,15 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { quizThemeColors } from "@/lib/quiz-themes";
+import { SEO } from "@/components/seo";
+import { AdSenseInArticle, AdSenseAuto } from "@/components/adsense";
 import type { Question, QuestionType, QuizTheme, DifficultyLevel, InsertQuiz, QuizCategory, Group } from "@shared/schema";
 import { quizThemes, questionTypes, difficultyLevels, quizCategories } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Users } from "lucide-react";
 
-const steps = ["Details", "Questions", "Settings"];
+const steps = ["Détails", "Questions", "Paramètres"];
 
 function ThemeSelector({ 
   value, 
@@ -72,10 +74,10 @@ function QuestionTypeSelector({
   onChange: (type: QuestionType) => void;
 }) {
   const typeLabels: Record<QuestionType, string> = {
-    multiple: "Multiple Choice",
-    truefalse: "True/False",
-    text: "Short Text",
-    ranking: "Ranking",
+    multiple: "Choix Multiple",
+    truefalse: "Vrai/Faux",
+    text: "Texte Court",
+    ranking: "Classement",
   };
 
   return (
@@ -148,13 +150,13 @@ function QuestionEditor({
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label>Question Type</Label>
+            <Label>Type de Question</Label>
             <QuestionTypeSelector
               value={question.type}
               onChange={(type) => {
                 updateField("type", type);
                 if (type === "truefalse") {
-                  updateField("options", ["True", "False"]);
+                  updateField("options", ["Vrai", "Faux"]);
                 } else if (type === "multiple" && (!question.options || question.options.length === 0)) {
                   updateField("options", ["", "", "", ""]);
                 } else if (type === "text" || type === "ranking") {
@@ -165,12 +167,12 @@ function QuestionEditor({
           </div>
 
           <div>
-            <Label htmlFor={`question-${index}`}>Question Text</Label>
+            <Label htmlFor={`question-${index}`}>Texte de la Question</Label>
             <Textarea
               id={`question-${index}`}
               value={question.question}
               onChange={(e) => updateField("question", e.target.value)}
-              placeholder="Enter your question..."
+              placeholder="Entrez votre question..."
               className="mt-1.5"
               data-testid={`input-question-text-${index}`}
             />
@@ -178,7 +180,7 @@ function QuestionEditor({
 
           {(question.type === "multiple" || question.type === "truefalse") && (
             <div>
-              <Label>Answer Options</Label>
+              <Label>Options de Réponse</Label>
               <div className="mt-1.5 space-y-2">
                 {(question.options || []).map((option, i) => (
                   <div key={`option-${index}-${i}`} className="flex items-center gap-2">
@@ -223,7 +225,7 @@ function QuestionEditor({
                   data-testid={`button-add-option-${index}`}
                 >
                   <Plus className="h-4 w-4" />
-                  Add Option
+                  Ajouter une Option
                 </Button>
               )}
             </div>
@@ -231,12 +233,12 @@ function QuestionEditor({
 
           {question.type === "text" && (
             <div>
-              <Label htmlFor={`correct-${index}`}>Correct Answer</Label>
+              <Label htmlFor={`correct-${index}`}>Bonne Réponse</Label>
               <Input
                 id={`correct-${index}`}
                 value={question.correctAnswer as string}
                 onChange={(e) => updateField("correctAnswer", e.target.value)}
-                placeholder="Enter the correct answer..."
+                placeholder="Entrez la bonne réponse..."
                 className="mt-1.5"
                 data-testid={`input-correct-answer-${index}`}
               />
@@ -245,7 +247,7 @@ function QuestionEditor({
 
           {question.type === "ranking" && (
             <div>
-              <Label>Items to Rank (in correct order)</Label>
+              <Label>Éléments à Classer (dans le bon ordre)</Label>
               <div className="mt-1.5 space-y-2">
                 {(Array.isArray(question.correctAnswer) ? question.correctAnswer : []).map((item, i) => (
                   <div key={`ranking-item-${index}-${i}`} className="flex items-center gap-2">
@@ -284,19 +286,19 @@ function QuestionEditor({
                   className="gap-1"
                 >
                   <Plus className="h-4 w-4" />
-                  Add Item
+                  Ajouter un Élément
                 </Button>
               </div>
             </div>
           )}
 
           <div>
-            <Label htmlFor={`explanation-${index}`}>Explanation (Optional)</Label>
+            <Label htmlFor={`explanation-${index}`}>Explication (Optionnel)</Label>
             <Textarea
               id={`explanation-${index}`}
               value={question.explanation || ""}
               onChange={(e) => updateField("explanation", e.target.value)}
-              placeholder="Explain why this is the correct answer..."
+              placeholder="Expliquez pourquoi c'est la bonne réponse..."
               className="mt-1.5"
               data-testid={`input-explanation-${index}`}
             />
@@ -308,6 +310,19 @@ function QuestionEditor({
 }
 
 export default function Create() {
+  return (
+    <>
+      <SEO
+        title="Créer un Quiz - QuizCraft AI"
+        description="Créez des quiz engageants en quelques minutes avec l'aide de l'IA."
+        keywords="créer quiz, quiz maker, générateur de quiz, quiz IA"
+      />
+      <CreateContent />
+    </>
+  );
+}
+
+function CreateContent() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [step, setStep] = useState(0);
@@ -359,8 +374,8 @@ export default function Create() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/quizzes"] });
       toast({
-        title: "Quiz created!",
-        description: "Your quiz has been saved successfully.",
+        title: "Quiz créé !",
+        description: "Votre quiz a été enregistré avec succès.",
       });
       // Use setTimeout to ensure toast is shown before navigation
       setTimeout(() => {
@@ -372,7 +387,7 @@ export default function Create() {
       const errorMessage = error?.message || "Failed to create quiz. Please try again.";
       setError(errorMessage);
       toast({
-        title: "Error",
+        title: "Erreur",
         description: errorMessage,
         variant: "destructive",
       });
@@ -394,8 +409,8 @@ export default function Create() {
       if (data && data.questions && Array.isArray(data.questions)) {
         setQuestions(data.questions);
         toast({
-          title: "Questions generated!",
-          description: `Created ${data.questions.length} questions from AI.`,
+        title: "Questions générées !",
+        description: `${data.questions.length} questions créées par l'IA.`,
         });
         setStep(1);
       } else {
@@ -406,7 +421,7 @@ export default function Create() {
       console.error("Error generating questions:", error);
       const errorMessage = error?.message || "Could not generate questions. Please try again or create manually.";
       toast({
-        title: "Generation failed",
+        title: "Échec de la génération",
         description: errorMessage,
         variant: "destructive",
       });
@@ -438,8 +453,8 @@ export default function Create() {
   const handleSubmit = async () => {
     if (!title.trim()) {
       toast({
-        title: "Title required",
-        description: "Please enter a title for your quiz.",
+        title: "Titre requis",
+        description: "Veuillez entrer un titre pour votre quiz.",
         variant: "destructive",
       });
       setStep(0);
@@ -448,8 +463,8 @@ export default function Create() {
 
     if (questions.length === 0) {
       toast({
-        title: "Questions required",
-        description: "Please add at least one question to your quiz.",
+        title: "Questions requises",
+        description: "Veuillez ajouter au moins une question à votre quiz.",
         variant: "destructive",
       });
       setStep(1);
@@ -468,8 +483,8 @@ export default function Create() {
 
     if (invalidQuestions.length > 0) {
       toast({
-        title: "Invalid questions",
-        description: "Please complete all questions before saving.",
+        title: "Questions invalides",
+        description: "Veuillez compléter toutes les questions avant d'enregistrer.",
         variant: "destructive",
       });
       setStep(1);
@@ -494,8 +509,8 @@ export default function Create() {
     } catch (error) {
       console.error("Error in handleSubmit:", error);
       toast({
-        title: "Error",
-        description: "An unexpected error occurred. Please try again.",
+        title: "Erreur",
+        description: "Une erreur inattendue s'est produite. Veuillez réessayer.",
         variant: "destructive",
       });
     }
@@ -517,14 +532,14 @@ export default function Create() {
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
         <Card className="border-destructive">
           <CardHeader>
-            <CardTitle className="text-destructive">Database Error</CardTitle>
+            <CardTitle className="text-destructive">Erreur de Base de Données</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground mb-4">
-              The database schema is being updated. Please refresh the page in a few moments.
+              Le schéma de la base de données est en cours de mise à jour. Veuillez actualiser la page dans quelques instants.
             </p>
             <Button onClick={() => window.location.reload()}>
-              Refresh Page
+              Actualiser la Page
             </Button>
           </CardContent>
         </Card>
@@ -540,9 +555,9 @@ export default function Create() {
         animate={{ opacity: 1, y: 0 }}
         className="mb-8"
       >
-        <h1 className="font-heading text-3xl font-bold">Create New Quiz</h1>
+        <h1 className="font-heading text-3xl font-bold">Créer un Nouveau Quiz</h1>
         <p className="mt-1 text-muted-foreground">
-          Build an engaging quiz in minutes with AI assistance
+          Créez un quiz engageant en quelques minutes avec l'aide de l'IA
         </p>
       </motion.div>
 
@@ -594,24 +609,24 @@ export default function Create() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Wand2 className="h-5 w-5 text-primary" />
-                  Generate with AI
+                  Générer avec l'IA
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="ai-topic">Topic or Content</Label>
+                  <Label htmlFor="ai-topic">Sujet ou Contenu</Label>
                   <Textarea
                     id="ai-topic"
                     value={aiTopic}
                     onChange={(e) => setAiTopic(e.target.value)}
-                    placeholder="Enter a topic (e.g., 'World War II history') or paste content to generate questions from..."
+                    placeholder="Entrez un sujet (ex: 'Histoire de la Seconde Guerre mondiale') ou collez du contenu pour générer des questions..."
                     className="mt-1.5"
                     data-testid="input-ai-topic"
                   />
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <Label>Number of Questions</Label>
+                    <Label>Nombre de Questions</Label>
                     <Select
                       value={aiQuestionCount.toString()}
                       onValueChange={(v) => setAiQuestionCount(parseInt(v))}
@@ -629,7 +644,7 @@ export default function Create() {
                     </Select>
                   </div>
                   <div>
-                    <Label>Difficulty</Label>
+                    <Label>Difficulté</Label>
                     <Select
                       value={difficulty}
                       onValueChange={(v) => setDifficulty(v as DifficultyLevel)}
@@ -648,7 +663,7 @@ export default function Create() {
                   </div>
                 </div>
                 <div>
-                  <Label>Question Types to Include</Label>
+                  <Label>Types de Questions à Inclure</Label>
                   <div className="mt-1.5 flex flex-wrap gap-2">
                     {(["multiple", "truefalse"] as QuestionType[]).map((type) => (
                       <Badge
@@ -657,7 +672,7 @@ export default function Create() {
                         className="cursor-pointer"
                         onClick={() => toggleAiType(type)}
                       >
-                        {type === "multiple" ? "Multiple Choice" : "True/False"}
+                        {type === "multiple" ? "Choix Multiple" : "Vrai/Faux"}
                       </Badge>
                     ))}
                   </div>
@@ -671,12 +686,12 @@ export default function Create() {
                   {generateMutation.isPending ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Generating...
+                      Génération...
                     </>
                   ) : (
                     <>
                       <Sparkles className="h-4 w-4" />
-                      Generate Questions
+                      Générer les Questions
                     </>
                   )}
                 </Button>
@@ -686,16 +701,16 @@ export default function Create() {
             {/* Manual Details */}
             <Card>
               <CardHeader>
-                <CardTitle>Quiz Details</CardTitle>
+                <CardTitle>Détails du Quiz</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="title">Title *</Label>
+                  <Label htmlFor="title">Titre *</Label>
                   <Input
                     id="title"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Enter quiz title..."
+                    placeholder="Entrez le titre du quiz..."
                     className="mt-1.5"
                     data-testid="input-title"
                   />
@@ -706,7 +721,7 @@ export default function Create() {
                     id="description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Describe what this quiz is about..."
+                    placeholder="Décrivez le sujet de ce quiz..."
                     className="mt-1.5"
                     data-testid="input-description"
                   />
@@ -714,21 +729,21 @@ export default function Create() {
                 <div>
                   <Label className="mb-2 flex items-center gap-2">
                     <Palette className="h-4 w-4" />
-                    Theme
+                    Thème
                   </Label>
                   <ThemeSelector value={theme} onChange={setTheme} />
                 </div>
                 <div>
-                  <Label htmlFor="category">Category</Label>
+                  <Label htmlFor="category">Catégorie</Label>
                   <Select
                     value={category || "none"}
                     onValueChange={(v) => setCategory(v === "none" ? undefined : (v as QuizCategory))}
                   >
                     <SelectTrigger className="mt-1.5" id="category">
-                      <SelectValue placeholder="Select a category (optional)" />
+                      <SelectValue placeholder="Sélectionnez une catégorie (optionnel)" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">None</SelectItem>
+                      <SelectItem value="none">Aucune</SelectItem>
                       {quizCategories.map((cat) => (
                         <SelectItem key={cat} value={cat}>
                           {cat}
@@ -754,7 +769,7 @@ export default function Create() {
                             setTagInput("");
                           }
                         }}
-                        placeholder="Type a tag and press Enter..."
+                        placeholder="Tapez un tag et appuyez sur Entrée..."
                         className="flex-1"
                       />
                     </div>
@@ -781,9 +796,9 @@ export default function Create() {
                 </div>
                 <div className="flex items-center justify-between rounded-lg border p-4">
                   <div className="space-y-0.5">
-                    <Label htmlFor="isPublic">Public Quiz</Label>
+                    <Label htmlFor="isPublic">Quiz Public</Label>
                     <p className="text-sm text-muted-foreground">
-                      Make this quiz visible to everyone
+                      Rendre ce quiz visible par tous
                     </p>
                   </div>
                   <Switch
@@ -822,7 +837,7 @@ export default function Create() {
               data-testid="button-add-question"
             >
               <Plus className="h-4 w-4" />
-              Add Question
+              Ajouter une Question
             </Button>
           </motion.div>
         )}
@@ -836,16 +851,16 @@ export default function Create() {
           >
             <Card>
               <CardHeader>
-                <CardTitle>Quiz Settings</CardTitle>
+                <CardTitle>Paramètres du Quiz</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Clock className="h-5 w-5 text-muted-foreground" />
                     <div>
-                      <p className="font-medium">Enable Timer</p>
+                      <p className="font-medium">Activer le Minuteur</p>
                       <p className="text-sm text-muted-foreground">
-                        Set a time limit for the entire quiz
+                        Définir une limite de temps pour tout le quiz
                       </p>
                     </div>
                   </div>
@@ -858,7 +873,7 @@ export default function Create() {
 
                 {enableTimer && (
                   <div>
-                    <Label>Time Limit (minutes)</Label>
+                    <Label>Limite de Temps (minutes)</Label>
                     <Select
                       value={(timeLimit ? timeLimit / 60 : 5).toString()}
                       onValueChange={(v) => setTimeLimit(parseInt(v) * 60)}
@@ -920,15 +935,15 @@ export default function Create() {
                 )}
 
                 <div className="rounded-lg border bg-muted/50 p-4">
-                  <h4 className="font-medium">Quiz Summary</h4>
+                  <h4 className="font-medium">Résumé du Quiz</h4>
                   <div className="mt-2 space-y-1 text-sm text-muted-foreground">
-                    <p>Title: {title || "Untitled"}</p>
-                    <p>Questions: {questions.length}</p>
-                    <p>Theme: {theme.charAt(0).toUpperCase() + theme.slice(1)}</p>
-                    <p>Difficulty: {difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}</p>
-                    {enableTimer && <p>Time Limit: {timeLimit ? timeLimit / 60 : 5} minutes</p>}
+                    <p>Titre : {title || "Sans titre"}</p>
+                    <p>Questions : {questions.length}</p>
+                    <p>Thème : {theme.charAt(0).toUpperCase() + theme.slice(1)}</p>
+                    <p>Difficulté : {difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}</p>
+                    {enableTimer && <p>Limite de temps : {timeLimit ? timeLimit / 60 : 5} minutes</p>}
                     {sharedWithGroups.length > 0 && (
-                      <p>Shared with: {sharedWithGroups.length} groupe(s)</p>
+                      <p>Partagé avec : {sharedWithGroups.length} groupe(s)</p>
                     )}
                   </div>
                 </div>
@@ -948,7 +963,7 @@ export default function Create() {
           data-testid="button-prev-step"
         >
           <ChevronLeft className="h-4 w-4" />
-          Previous
+          Précédent
         </Button>
 
         {step < steps.length - 1 ? (
@@ -957,7 +972,7 @@ export default function Create() {
             className="gap-2"
             data-testid="button-next-step"
           >
-            Next
+            Suivant
             <ChevronRight className="h-4 w-4" />
           </Button>
         ) : (
@@ -970,12 +985,12 @@ export default function Create() {
             {createMutation.isPending ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Saving...
+                Enregistrement...
               </>
             ) : (
               <>
                 <Save className="h-4 w-4" />
-                Save Quiz
+                Enregistrer le Quiz
               </>
             )}
           </Button>

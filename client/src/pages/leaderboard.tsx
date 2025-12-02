@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
+import { SEO } from "@/components/seo";
+import { AdSenseInArticle, AdSenseAuto } from "@/components/adsense";
 import type { LeaderboardEntry } from "@shared/schema";
 
 function getRankIcon(rank: number) {
@@ -47,7 +49,7 @@ function LeaderboardRow({
           <p className={`font-medium ${isCurrentUser ? "text-primary" : ""}`}>
             {entry.name}
             {isCurrentUser && (
-              <span className="ml-2 text-sm text-muted-foreground">(You)</span>
+              <span className="ml-2 text-sm text-muted-foreground">(Vous)</span>
             )}
           </p>
           {entry.type === "group" && (
@@ -73,13 +75,13 @@ function LeaderboardRow({
         </div>
         <div>
           <p className="font-heading text-lg font-bold">{entry.quizzes}</p>
-          <p className="text-xs text-muted-foreground">Quizzes</p>
+          <p className="text-xs text-muted-foreground">Quiz</p>
         </div>
         <div>
           <p className="font-heading text-lg font-bold" translate="no">
             {typeof entry.accuracy === 'number' && !isNaN(entry.accuracy) ? entry.accuracy : 0}%
           </p>
-          <p className="text-xs text-muted-foreground" translate="no">Accuracy</p>
+          <p className="text-xs text-muted-foreground" translate="no">Précision</p>
         </div>
       </div>
     </motion.div>
@@ -105,6 +107,19 @@ function LeaderboardSkeleton() {
 }
 
 export default function Leaderboard() {
+  return (
+    <>
+      <SEO
+        title="Classement - Leaderboard | QuizCraft AI"
+        description="Consultez le classement des meilleurs joueurs et groupes de quiz."
+        keywords="classement, leaderboard, meilleurs joueurs, quiz"
+      />
+      <LeaderboardContent />
+    </>
+  );
+}
+
+function LeaderboardContent() {
   const { data: leaderboard, isLoading } = useQuery<LeaderboardEntry[]>({
     queryKey: ["/api/leaderboard"],
   });
@@ -114,6 +129,10 @@ export default function Leaderboard() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="my-6 flex justify-center">
+        <AdSenseAuto />
+      </div>
+
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -123,9 +142,9 @@ export default function Leaderboard() {
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-yellow-400 to-orange-500">
           <Trophy className="h-8 w-8 text-white" />
         </div>
-        <h1 className="font-heading text-3xl font-bold">Leaderboard</h1>
+        <h1 className="font-heading text-3xl font-bold">Classement</h1>
         <p className="mt-1 text-muted-foreground">
-          See how you rank against other quiz masters
+          Voyez comment vous vous classez par rapport aux autres maîtres du quiz
         </p>
       </motion.div>
 
@@ -146,15 +165,15 @@ export default function Leaderboard() {
                     </span>
                   </div>
                   <div>
-                    <p className="font-medium">Your Position</p>
+                    <p className="font-medium">Votre Position</p>
                     <p className="text-sm text-muted-foreground">
-                      Keep playing to climb the ranks!
+                      Continuez à jouer pour monter dans le classement !
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
                   <p className="font-heading text-xl font-bold">{currentUser.score.toLocaleString()}</p>
-                  <p className="text-sm text-muted-foreground">Total Points</p>
+                  <p className="text-sm text-muted-foreground">Points Totaux</p>
                 </div>
               </div>
             </CardContent>
@@ -166,17 +185,17 @@ export default function Leaderboard() {
       <Card>
         <CardHeader className="flex flex-row items-center gap-2">
           <TrendingUp className="h-5 w-5" />
-          <CardTitle>Top Players</CardTitle>
+          <CardTitle>Meilleurs Joueurs</CardTitle>
         </CardHeader>
         <CardContent>
           {/* Header Row */}
           <div className="mb-2 flex items-center gap-4 border-b px-4 pb-3 text-sm text-muted-foreground">
-            <div className="w-10">Rank</div>
-            <div className="flex-1">Player</div>
+            <div className="w-10">Rang</div>
+            <div className="flex-1">Joueur</div>
             <div className="grid w-64 grid-cols-3 gap-8 text-right">
               <div>Points</div>
-              <div>Quizzes</div>
-              <div>Accuracy</div>
+              <div>Quiz</div>
+              <div>Précision</div>
             </div>
           </div>
 
@@ -195,14 +214,19 @@ export default function Leaderboard() {
           ) : (
             <div className="py-12 text-center">
               <Target className="mx-auto h-12 w-12 text-muted-foreground" />
-              <p className="mt-4 font-medium">No players yet</p>
+              <p className="mt-4 font-medium">Aucun joueur pour le moment</p>
               <p className="text-sm text-muted-foreground">
-                Complete a quiz to appear on the leaderboard
+                Complétez un quiz pour apparaître dans le classement
               </p>
             </div>
           )}
         </CardContent>
       </Card>
+
+      <div className="my-6 flex justify-center">
+        <AdSenseInArticle />
+      </div>
     </div>
+    </>
   );
 }

@@ -15,6 +15,8 @@ import {
   ResponsiveContainer, BarChart, Bar 
 } from "recharts";
 import { useAuth } from "@/lib/auth-context";
+import { SEO } from "@/components/seo";
+import { AdSenseInArticle, AdSenseAuto } from "@/components/adsense";
 import type { UserStats, QuizResult, Quiz } from "@shared/schema";
 import { badges as badgeDefinitions } from "@shared/schema";
 import { format } from "date-fns";
@@ -119,6 +121,19 @@ function BadgeCard({
 }
 
 export default function Profile() {
+  return (
+    <>
+      <SEO
+        title="Profil - Mon Compte | QuizCraft AI"
+        description="Consultez votre profil, vos statistiques et vos réalisations."
+        keywords="profil, compte, statistiques, badges"
+      />
+      <ProfileContent />
+    </>
+  );
+}
+
+function ProfileContent() {
   const { user } = useAuth();
   const { data: stats, isLoading: statsLoading } = useQuery<UserStats>({
     queryKey: ["/api/stats"],
@@ -178,6 +193,10 @@ export default function Profile() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="my-6 flex justify-center">
+        <AdSenseAuto />
+      </div>
+
       {/* Profile Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -201,7 +220,7 @@ export default function Profile() {
                     {user?.createdAt && (
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4" />
-                        <span>Member since {format(new Date(user.createdAt), "MMMM yyyy")}</span>
+                        <span>Membre depuis {format(new Date(user.createdAt), "MMMM yyyy")}</span>
                       </div>
                     )}
                   </div>
@@ -211,13 +230,13 @@ export default function Profile() {
                 <Link href="/library">
                   <Button variant="outline" className="gap-2">
                     <Edit2 className="h-4 w-4" />
-                    My Quizzes
+                    Mes Quiz
                   </Button>
                 </Link>
                 <Link href="/stats">
                   <Button variant="outline" className="gap-2">
                     <BarChart3 className="h-4 w-4" />
-                    Detailed Stats
+                    Statistiques Détaillées
                   </Button>
                 </Link>
               </div>
@@ -237,7 +256,7 @@ export default function Profile() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Trophy className="h-5 w-5" />
-              Level Progress
+              Progression de Niveau
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -253,7 +272,7 @@ export default function Profile() {
                   <p className="font-heading text-2xl font-bold text-primary">
                     {Math.round(xpProgress)}%
                   </p>
-                  <p className="text-sm text-muted-foreground">to Level {userStats.level + 1}</p>
+                  <p className="text-sm text-muted-foreground">vers le Niveau {userStats.level + 1}</p>
                 </div>
               </div>
               <Progress value={xpProgress} className="h-3" />
@@ -271,28 +290,28 @@ export default function Profile() {
       >
         <StatCard
           icon={Trophy}
-          label="Quizzes Completed"
+          label="Quiz Terminés"
           value={userStats.totalQuizzes}
           gradient="bg-gradient-to-br from-yellow-500 to-orange-500"
         />
         <StatCard
           icon={CheckCircle}
-          label="Questions Answered"
+          label="Questions Répondues"
           value={userStats.totalQuestions}
-          subtext={`${userStats.correctAnswers} correct`}
+          subtext={`${userStats.correctAnswers} correctes`}
           gradient="bg-gradient-to-br from-green-500 to-teal-500"
         />
         <StatCard
           icon={Target}
-          label="Accuracy"
+          label="Précision"
           value={`${accuracy}%`}
           gradient="bg-gradient-to-br from-blue-500 to-cyan-500"
         />
         <StatCard
           icon={Flame}
-          label="Best Streak"
+          label="Meilleure Série"
           value={userStats.bestStreak}
-          subtext={`Current: ${userStats.currentStreak}`}
+          subtext={`Actuelle : ${userStats.currentStreak}`}
           gradient="bg-gradient-to-br from-red-500 to-pink-500"
         />
       </motion.div>
@@ -308,7 +327,7 @@ export default function Profile() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Clock className="h-5 w-5" />
-              Recent Quiz History
+              Historique Récent des Quiz
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -329,7 +348,7 @@ export default function Profile() {
                             <Play className="h-5 w-5 text-white" />
                           </div>
                           <div>
-                            <p className="font-medium">{result.quiz?.title || "Unknown Quiz"}</p>
+                            <p className="font-medium">{result.quiz?.title || "Quiz Inconnu"}</p>
                             <p className="text-sm text-muted-foreground">
                               {result.completedAt && format(new Date(result.completedAt), "MMM dd, yyyy 'at' HH:mm")}
                             </p>
@@ -339,7 +358,7 @@ export default function Profile() {
                       <div className="flex items-center gap-6 text-right">
                         <div>
                           <p className="font-heading text-lg font-bold" translate="no">{acc}%</p>
-                          <p className="text-xs text-muted-foreground">Accuracy</p>
+                          <p className="text-xs text-muted-foreground">Précision</p>
                         </div>
                         <div>
                           <p className="font-heading text-lg font-bold" translate="no">{result.score}</p>
@@ -349,7 +368,7 @@ export default function Profile() {
                           <Link href={`/play/${result.quiz.id}`}>
                             <Button variant="outline" size="sm" className="gap-2">
                               <Play className="h-4 w-4" />
-                              Retake
+                              Rejouer
                             </Button>
                           </Link>
                         )}
@@ -361,14 +380,14 @@ export default function Profile() {
             ) : (
               <div className="py-12 text-center">
                 <Play className="mx-auto h-12 w-12 text-muted-foreground" />
-                <p className="mt-4 font-medium">No quiz history yet</p>
+                <p className="mt-4 font-medium">Aucun historique de quiz pour le moment</p>
                 <p className="text-sm text-muted-foreground">
-                  Start playing quizzes to see your history here
+                  Commencez à jouer aux quiz pour voir votre historique ici
                 </p>
                 <Link href="/library">
                   <Button className="mt-6 gap-2">
                     <Play className="h-4 w-4" />
-                    Browse Quizzes
+                    Parcourir les Quiz
                   </Button>
                 </Link>
               </div>
@@ -387,10 +406,10 @@ export default function Profile() {
         >
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5" />
-                Performance Over Time
-              </CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              Performance dans le Temps
+            </CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
@@ -423,7 +442,7 @@ export default function Profile() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Award className="h-5 w-5" />
-              Badges & Achievements
+              Badges & Réalisations
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -439,7 +458,12 @@ export default function Profile() {
           </CardContent>
         </Card>
       </motion.div>
+
+      <div className="my-6 flex justify-center">
+        <AdSenseInArticle />
+      </div>
     </div>
+    </>
   );
 }
 
