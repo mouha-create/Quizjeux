@@ -706,14 +706,14 @@ export default function Create() {
                 <div>
                   <Label htmlFor="category">Category</Label>
                   <Select
-                    value={category || ""}
-                    onValueChange={(v) => setCategory(v ? (v as QuizCategory) : undefined)}
+                    value={category || "none"}
+                    onValueChange={(v) => setCategory(v === "none" ? undefined : (v as QuizCategory))}
                   >
                     <SelectTrigger className="mt-1.5" id="category">
                       <SelectValue placeholder="Select a category (optional)" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="none">None</SelectItem>
                       {quizCategories.map((cat) => (
                         <SelectItem key={cat} value={cat}>
                           {cat}
