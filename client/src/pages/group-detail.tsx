@@ -435,10 +435,84 @@ export default function GroupDetail() {
         >
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Target className="h-5 w-5" />
-                Quiz Partagés ({quizzes?.length || 0})
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="h-5 w-5" />
+                  Quiz Partagés ({quizzes?.length || 0})
+                </CardTitle>
+                {isMember && (
+                  <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="gap-2">
+                        <Share2 className="h-4 w-4" />
+                        Partager un Quiz
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl">
+                      <DialogHeader>
+                        <DialogTitle>Partager des Quiz avec le Groupe</DialogTitle>
+                        <DialogDescription>
+                          Sélectionnez les quiz que vous souhaitez partager avec ce groupe
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="max-h-[400px] space-y-2 overflow-y-auto">
+                        {availableQuizzes.length > 0 ? (
+                          availableQuizzes.map((quiz) => (
+                            <div
+                              key={quiz.id}
+                              className="flex items-center space-x-3 rounded-lg border p-3"
+                            >
+                              <Checkbox
+                                id={`share-quiz-${quiz.id}`}
+                                checked={selectedQuizIds.includes(quiz.id)}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    setSelectedQuizIds([...selectedQuizIds, quiz.id]);
+                                  } else {
+                                    setSelectedQuizIds(selectedQuizIds.filter(id => id !== quiz.id));
+                                  }
+                                }}
+                              />
+                              <label
+                                htmlFor={`share-quiz-${quiz.id}`}
+                                className="flex flex-1 cursor-pointer items-center justify-between"
+                              >
+                                <div>
+                                  <p className="font-medium">{quiz.title}</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {quiz.questions.length} questions • {quiz.plays} parties
+                                  </p>
+                                </div>
+                              </label>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-center text-muted-foreground py-8">
+                            Aucun quiz disponible à partager
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex justify-end gap-2 pt-4">
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setShareDialogOpen(false);
+                            setSelectedQuizIds([]);
+                          }}
+                        >
+                          Annuler
+                        </Button>
+                        <Button
+                          onClick={() => shareQuizzesMutation.mutate(selectedQuizIds)}
+                          disabled={selectedQuizIds.length === 0 || shareQuizzesMutation.isPending}
+                        >
+                          {shareQuizzesMutation.isPending ? "Partage..." : `Partager ${selectedQuizIds.length} quiz`}
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               {quizzesLoading ? (
