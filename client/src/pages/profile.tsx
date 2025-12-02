@@ -463,7 +463,6 @@ function ProfileContent() {
         <AdSenseInArticle />
       </div>
     </div>
-    </>
   );
 }
 
