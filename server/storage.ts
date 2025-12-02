@@ -802,9 +802,11 @@ export class DatabaseStorage implements IStorage {
         .from(groupMembersTable)
         .where(eq(groupMembersTable.groupId, groupId));
       
+      if (members.length === 0) return [];
+
       const userIds = members.map(m => m.userId);
       const users = await db.select().from(usersTable)
-        .where(sql`${usersTable.id} = ANY(${userIds})`);
+        .where(inArray(usersTable.id, userIds));
       const userMap = new Map(users.map(u => [u.id, u.username]));
 
       return members.map(m => ({
@@ -832,7 +834,7 @@ export class DatabaseStorage implements IStorage {
       if (groupIds.length === 0) return [];
 
       const groups = await db.select().from(groupsTable)
-        .where(sql`${groupsTable.id} = ANY(${groupIds})`);
+        .where(inArray(groupsTable.id, groupIds));
       
       return groups.map(g => ({
         id: g.id,
