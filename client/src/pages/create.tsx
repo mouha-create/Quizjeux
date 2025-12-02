@@ -332,6 +332,16 @@ export default function Create() {
   const [aiQuestionCount, setAiQuestionCount] = useState(10);
   const [aiTypes, setAiTypes] = useState<QuestionType[]>(["multiple", "truefalse"]);
 
+  // Get user's groups
+  const { data: myGroups = [] } = useQuery<Group[]>({
+    queryKey: ["/api/my-groups"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/my-groups");
+      if (!response.ok) return [];
+      return response.json();
+    },
+  });
+
   const createMutation = useMutation({
     mutationFn: async (quiz: InsertQuiz) => {
       try {
