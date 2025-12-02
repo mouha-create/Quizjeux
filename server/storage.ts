@@ -5,7 +5,7 @@ import { badges } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./database";
 import { usersTable, quizzesTable, resultsTable, userStatsTable, userFavoritesTable, groupsTable, groupMembersTable, groupQuizzesTable } from "@shared/schema";
-import { eq, desc, sql, and } from "drizzle-orm";
+import { eq, desc, sql, and, inArray, or } from "drizzle-orm";
 import { generateBadgeRules } from "@shared/badge-rules";
 
 export interface IStorage {
@@ -638,8 +638,19 @@ export class DatabaseStorage implements IStorage {
           .where(eq(groupMembersTable.userId, userId));
         const userGroupIds = userGroups.map(g => g.groupId);
         
-        groups = await db.select().from(groupsTable)
-          .where(sql`${groupsTable.visibility} = 'public' OR ${groupsTable.id} = ANY(${userGroupIds})`);
+        if (userGroupIds.length > 0) {
+          groups = await db.select().from(groupsTable)
+            .where(
+              or(
+                eq(groupsTable.visibility, "public"),
+                inArray(groupsTable.id, userGroupIds)
+              )
+            );
+        } else {
+          // If user has no groups, only show public groups
+          groups = await db.select().from(groupsTable)
+            .where(eq(groupsTable.visibility, "public"));
+        }
       } else {
         groups = await db.select().from(groupsTable)
           .where(eq(groupsTable.visibility, "public"));
