@@ -115,9 +115,58 @@ if (process.env.DATABASE_URL) {
                           WHERE table_name = 'quizzes' AND column_name = 'user_id') THEN
               ALTER TABLE quizzes ADD COLUMN user_id VARCHAR;
             END IF;
+
+            -- Add shared_with_groups column if it doesn't exist
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                          WHERE table_name = 'quizzes' AND column_name = 'shared_with_groups') THEN
+              ALTER TABLE quizzes ADD COLUMN shared_with_groups TEXT[] DEFAULT ARRAY[]::TEXT[];
+            END IF;
           END $$;
         `);
         console.log("Quizzes table migration complete");
+
+        // Create groups tables
+        await db.execute(sql`
+          CREATE TABLE IF NOT EXISTS groups (
+            id VARCHAR PRIMARY KEY,
+            name VARCHAR NOT NULL,
+            description TEXT,
+            badge VARCHAR,
+            creator_id VARCHAR NOT NULL,
+            visibility VARCHAR DEFAULT 'public',
+            join_type VARCHAR DEFAULT 'open',
+            member_count INTEGER DEFAULT 0,
+            total_quizzes INTEGER DEFAULT 0,
+            average_score INTEGER DEFAULT 0,
+            total_points INTEGER DEFAULT 0,
+            badges TEXT[] DEFAULT ARRAY[]::TEXT[],
+            created_at TIMESTAMP DEFAULT NOW(),
+            updated_at TIMESTAMP DEFAULT NOW()
+          )
+        `);
+
+        await db.execute(sql`
+          CREATE TABLE IF NOT EXISTS group_members (
+            group_id VARCHAR NOT NULL,
+            user_id VARCHAR NOT NULL,
+            role VARCHAR DEFAULT 'member',
+            joined_at TIMESTAMP DEFAULT NOW(),
+            contributed_quizzes INTEGER DEFAULT 0,
+            contributed_points INTEGER DEFAULT 0,
+            PRIMARY KEY (group_id, user_id)
+          )
+        `);
+
+        await db.execute(sql`
+          CREATE TABLE IF NOT EXISTS group_quizzes (
+            group_id VARCHAR NOT NULL,
+            quiz_id VARCHAR NOT NULL,
+            shared_by VARCHAR NOT NULL,
+            shared_at TIMESTAMP DEFAULT NOW(),
+            PRIMARY KEY (group_id, quiz_id)
+          )
+        `);
+        console.log("Groups tables ready");
 
         // Create user_favorites table if it doesn't exist
         await db.execute(sql`
