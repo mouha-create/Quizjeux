@@ -1,10 +1,11 @@
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { motion } from "framer-motion";
+import { useState } from "react";
 import { 
   Users, Trophy, Target, Star, TrendingUp, Award, 
   UserPlus, LogOut, Share2, Play, Plus, Crown, Shield,
-  BarChart3, Activity, Zap, Clock
+  BarChart3, Activity, Zap, Clock, X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +16,15 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Link } from "wouter";
 import { useAuth } from "@/lib/auth-context";
 import type { Group, Quiz } from "@shared/schema";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, 
   ResponsiveContainer, BarChart, Bar
@@ -43,13 +53,15 @@ export default function GroupDetail() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const { data: group, isLoading: groupLoading } = useQuery<Group>({
+  const { data: group, isLoading: groupLoading, refetch: refetchGroup } = useQuery<Group>({
     queryKey: ["/api/groups", id],
     queryFn: async () => {
       const response = await apiRequest("GET", `/api/groups/${id}`);
       if (!response.ok) throw new Error("Group not found");
       return response.json();
     },
+    enabled: !!id,
+    refetchInterval: 30000, // Refetch every 30 seconds to keep stats updated
   });
 
   const { data: members, isLoading: membersLoading } = useQuery({
@@ -61,13 +73,55 @@ export default function GroupDetail() {
     enabled: !!id,
   });
 
-  const { data: quizzes, isLoading: quizzesLoading } = useQuery<Quiz[]>({
+  const { data: quizzes, isLoading: quizzesLoading, refetch: refetchQuizzes } = useQuery<Quiz[]>({
     queryKey: ["/api/groups", id, "quizzes"],
     queryFn: async () => {
       const response = await apiRequest("GET", `/api/groups/${id}/quizzes`);
       return response.json();
     },
     enabled: !!id,
+  });
+
+  // Get all user's quizzes for sharing
+  const { data: allQuizzes = [] } = useQuery<Quiz[]>({
+    queryKey: ["/api/quizzes"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/quizzes");
+      return response.json();
+    },
+  });
+
+  // Filter quizzes that are not already shared with this group
+  const availableQuizzes = allQuizzes.filter(quiz => 
+    !quizzes?.some(sharedQuiz => sharedQuiz.id === quiz.id) &&
+    (quiz.userId === user?.id || quiz.isPublic)
+  );
+
+  const shareQuizzesMutation = useMutation({
+    mutationFn: async (quizIds: string[]) => {
+      const promises = quizIds.map(quizId =>
+        apiRequest("POST", `/api/groups/${id}/quizzes/${quizId}`)
+      );
+      await Promise.all(promises);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Quiz partagés !",
+        description: `${selectedQuizIds.length} quiz partagé(s) avec le groupe`,
+      });
+      setShareDialogOpen(false);
+      setSelectedQuizIds([]);
+      queryClient.invalidateQueries({ queryKey: ["/api/groups", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/groups", id, "quizzes"] });
+      refetchQuizzes();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de partager les quiz.",
+        variant: "destructive",
+      });
+    },
   });
 
   const { data: myGroups, refetch: refetchMyGroups } = useQuery({
