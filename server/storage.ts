@@ -4,7 +4,7 @@ import type {
 import { badges } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./database";
-import { usersTable, quizzesTable, resultsTable, userStatsTable, userFavoritesTable } from "@shared/schema";
+import { usersTable, quizzesTable, resultsTable, userStatsTable, userFavoritesTable, groupsTable, groupMembersTable, groupQuizzesTable } from "@shared/schema";
 import { eq, desc, sql, and } from "drizzle-orm";
 import { generateBadgeRules } from "@shared/badge-rules";
 
@@ -39,6 +39,24 @@ export interface IStorage {
   addFavorite(userId: string, quizId: string): Promise<void>;
   removeFavorite(userId: string, quizId: string): Promise<void>;
   getFavorites(userId: string): Promise<string[]>;
+  
+  // Groups
+  createGroup(group: any, creatorId: string): Promise<any>;
+  getGroup(id: string): Promise<any | undefined>;
+  getGroups(userId?: string): Promise<any[]>;
+  updateGroup(id: string, updates: Partial<any>): Promise<any | undefined>;
+  deleteGroup(id: string, userId: string): Promise<boolean>;
+  
+  // Group members
+  joinGroup(groupId: string, userId: string): Promise<void>;
+  leaveGroup(groupId: string, userId: string): Promise<void>;
+  getGroupMembers(groupId: string): Promise<any[]>;
+  getUserGroups(userId: string): Promise<any[]>;
+  
+  // Group quizzes
+  shareQuizWithGroup(groupId: string, quizId: string, userId: string): Promise<void>;
+  getGroupQuizzes(groupId: string): Promise<any[]>;
+  unshareQuizFromGroup(groupId: string, quizId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -76,6 +94,7 @@ export class DatabaseStorage implements IStorage {
           category: (q.category as any) || undefined,
           tags: (q.tags as string[]) || [],
           isPublic: q.isPublic !== false,
+          sharedWithGroups: (q.sharedWithGroups as string[]) || [],
           userId: q.userId || undefined,
           createdAt: q.createdAt?.toISOString() || new Date().toISOString(),
           updatedAt: q.updatedAt?.toISOString() || new Date().toISOString(),
@@ -102,6 +121,7 @@ export class DatabaseStorage implements IStorage {
         theme: (quiz.theme as any) || "purple",
         difficulty: (quiz.difficulty as any) || "intermediate",
         timeLimit: quiz.timeLimit || undefined,
+        sharedWithGroups: quiz.sharedWithGroups || [],
         createdAt: quiz.createdAt?.toISOString() || new Date().toISOString(),
         updatedAt: quiz.updatedAt?.toISOString() || new Date().toISOString(),
         plays: quiz.plays || 0,
@@ -129,6 +149,7 @@ export class DatabaseStorage implements IStorage {
         category: quiz.category,
         tags: quiz.tags || [],
         isPublic: quiz.isPublic !== false,
+        sharedWithGroups: quiz.sharedWithGroups || [],
         userId: quiz.userId,
         createdAt: now,
         updatedAt: now,
@@ -145,6 +166,7 @@ export class DatabaseStorage implements IStorage {
         category: quiz.category,
         tags: quiz.tags || [],
         isPublic: quiz.isPublic !== false,
+        sharedWithGroups: quiz.sharedWithGroups || [],
         userId: quiz.userId,
         createdAt: now.toISOString(),
         updatedAt: now.toISOString(),
@@ -544,6 +566,352 @@ export class DatabaseStorage implements IStorage {
     });
     
     return Array.from(earnedBadges);
+  }
+
+  // Groups implementation
+  async createGroup(groupData: any, creatorId: string): Promise<any> {
+    try {
+      const id = randomUUID();
+      const now = new Date();
+      await db.insert(groupsTable).values({
+        id,
+        name: groupData.name,
+        description: groupData.description || null,
+        badge: groupData.badge || null,
+        creatorId,
+        visibility: groupData.visibility || "public",
+        joinType: groupData.joinType || "open",
+        memberCount: 1,
+        createdAt: now,
+        updatedAt: now,
+      });
+      
+      // Add creator as member
+      await db.insert(groupMembersTable).values({
+        groupId: id,
+        userId: creatorId,
+        role: "creator",
+        joinedAt: now,
+      });
+
+      return this.getGroup(id);
+    } catch (error) {
+      console.error("Error creating group:", error);
+      throw error;
+    }
+  }
+
+  async getGroup(id: string): Promise<any | undefined> {
+    try {
+      const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, id));
+      if (!group) return undefined;
+      
+      return {
+        id: group.id,
+        name: group.name,
+        description: group.description || undefined,
+        badge: group.badge || undefined,
+        creatorId: group.creatorId,
+        visibility: group.visibility || "public",
+        joinType: group.joinType || "open",
+        memberCount: group.memberCount || 0,
+        totalQuizzes: group.totalQuizzes || 0,
+        averageScore: group.averageScore || 0,
+        totalPoints: group.totalPoints || 0,
+        badges: (group.badges as string[]) || [],
+        createdAt: group.createdAt?.toISOString() || new Date().toISOString(),
+        updatedAt: group.updatedAt?.toISOString() || new Date().toISOString(),
+      };
+    } catch (error) {
+      console.error("Error getting group:", error);
+      return undefined;
+    }
+  }
+
+  async getGroups(userId?: string): Promise<any[]> {
+    try {
+      let groups;
+      if (userId) {
+        // Get groups user is member of + public groups
+        const userGroups = await db.select({ groupId: groupMembersTable.groupId })
+          .from(groupMembersTable)
+          .where(eq(groupMembersTable.userId, userId));
+        const userGroupIds = userGroups.map(g => g.groupId);
+        
+        groups = await db.select().from(groupsTable)
+          .where(sql`${groupsTable.visibility} = 'public' OR ${groupsTable.id} = ANY(${userGroupIds})`);
+      } else {
+        groups = await db.select().from(groupsTable)
+          .where(eq(groupsTable.visibility, "public"));
+      }
+      
+      return groups.map(g => ({
+        id: g.id,
+        name: g.name,
+        description: g.description || undefined,
+        badge: g.badge || undefined,
+        creatorId: g.creatorId,
+        visibility: g.visibility || "public",
+        joinType: g.joinType || "open",
+        memberCount: g.memberCount || 0,
+        totalQuizzes: g.totalQuizzes || 0,
+        averageScore: g.averageScore || 0,
+        totalPoints: g.totalPoints || 0,
+        badges: (g.badges as string[]) || [],
+        createdAt: g.createdAt?.toISOString() || new Date().toISOString(),
+        updatedAt: g.updatedAt?.toISOString() || new Date().toISOString(),
+      }));
+    } catch (error) {
+      console.error("Error getting groups:", error);
+      return [];
+    }
+  }
+
+  async updateGroup(id: string, updates: Partial<any>): Promise<any | undefined> {
+    try {
+      const now = new Date();
+      await db.update(groupsTable).set({
+        ...updates,
+        updatedAt: now,
+      }).where(eq(groupsTable.id, id));
+      return this.getGroup(id);
+    } catch (error) {
+      console.error("Error updating group:", error);
+      return undefined;
+    }
+  }
+
+  async deleteGroup(id: string, userId: string): Promise<boolean> {
+    try {
+      const group = await this.getGroup(id);
+      if (!group || group.creatorId !== userId) {
+        return false;
+      }
+      
+      // Delete group members
+      await db.delete(groupMembersTable).where(eq(groupMembersTable.groupId, id));
+      // Delete group quizzes
+      await db.delete(groupQuizzesTable).where(eq(groupQuizzesTable.groupId, id));
+      // Delete group
+      await db.delete(groupsTable).where(eq(groupsTable.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting group:", error);
+      return false;
+    }
+  }
+
+  async joinGroup(groupId: string, userId: string): Promise<void> {
+    try {
+      const group = await this.getGroup(groupId);
+      if (!group) throw new Error("Group not found");
+      
+      if (group.joinType === "invite_only") {
+        throw new Error("Group is invite only");
+      }
+
+      await db.insert(groupMembersTable).values({
+        groupId,
+        userId,
+        role: "member",
+        joinedAt: new Date(),
+      }).onConflictDoNothing();
+
+      // Update member count
+      const memberCount = await db.select().from(groupMembersTable)
+        .where(eq(groupMembersTable.groupId, groupId));
+      await db.update(groupsTable)
+        .set({ memberCount: memberCount.length })
+        .where(eq(groupsTable.id, groupId));
+    } catch (error) {
+      console.error("Error joining group:", error);
+      throw error;
+    }
+  }
+
+  async leaveGroup(groupId: string, userId: string): Promise<void> {
+    try {
+      const group = await this.getGroup(groupId);
+      if (!group) throw new Error("Group not found");
+      
+      if (group.creatorId === userId) {
+        throw new Error("Creator cannot leave group");
+      }
+
+      await db.delete(groupMembersTable)
+        .where(and(
+          eq(groupMembersTable.groupId, groupId),
+          eq(groupMembersTable.userId, userId)
+        ));
+
+      // Update member count
+      const memberCount = await db.select().from(groupMembersTable)
+        .where(eq(groupMembersTable.groupId, groupId));
+      await db.update(groupsTable)
+        .set({ memberCount: memberCount.length })
+        .where(eq(groupsTable.id, groupId));
+    } catch (error) {
+      console.error("Error leaving group:", error);
+      throw error;
+    }
+  }
+
+  async getGroupMembers(groupId: string): Promise<any[]> {
+    try {
+      const members = await db.select()
+        .from(groupMembersTable)
+        .where(eq(groupMembersTable.groupId, groupId));
+      
+      const userIds = members.map(m => m.userId);
+      const users = await db.select().from(usersTable)
+        .where(sql`${usersTable.id} = ANY(${userIds})`);
+      const userMap = new Map(users.map(u => [u.id, u.username]));
+
+      return members.map(m => ({
+        groupId: m.groupId,
+        userId: m.userId,
+        username: userMap.get(m.userId) || "Unknown",
+        role: m.role || "member",
+        joinedAt: m.joinedAt?.toISOString() || new Date().toISOString(),
+        contributedQuizzes: m.contributedQuizzes || 0,
+        contributedPoints: m.contributedPoints || 0,
+      }));
+    } catch (error) {
+      console.error("Error getting group members:", error);
+      return [];
+    }
+  }
+
+  async getUserGroups(userId: string): Promise<any[]> {
+    try {
+      const memberGroups = await db.select({ groupId: groupMembersTable.groupId })
+        .from(groupMembersTable)
+        .where(eq(groupMembersTable.userId, userId));
+      
+      const groupIds = memberGroups.map(m => m.groupId);
+      if (groupIds.length === 0) return [];
+
+      const groups = await db.select().from(groupsTable)
+        .where(sql`${groupsTable.id} = ANY(${groupIds})`);
+      
+      return groups.map(g => ({
+        id: g.id,
+        name: g.name,
+        description: g.description || undefined,
+        badge: g.badge || undefined,
+        creatorId: g.creatorId,
+        visibility: g.visibility || "public",
+        joinType: g.joinType || "open",
+        memberCount: g.memberCount || 0,
+        totalQuizzes: g.totalQuizzes || 0,
+        averageScore: g.averageScore || 0,
+        totalPoints: g.totalPoints || 0,
+        badges: (g.badges as string[]) || [],
+        createdAt: g.createdAt?.toISOString() || new Date().toISOString(),
+        updatedAt: g.updatedAt?.toISOString() || new Date().toISOString(),
+      }));
+    } catch (error) {
+      console.error("Error getting user groups:", error);
+      return [];
+    }
+  }
+
+  async shareQuizWithGroup(groupId: string, quizId: string, userId: string): Promise<void> {
+    try {
+      // Check if user is member of group
+      const [member] = await db.select()
+        .from(groupMembersTable)
+        .where(and(
+          eq(groupMembersTable.groupId, groupId),
+          eq(groupMembersTable.userId, userId)
+        ));
+      
+      if (!member) {
+        throw new Error("User is not a member of this group");
+      }
+
+      await db.insert(groupQuizzesTable).values({
+        groupId,
+        quizId,
+        sharedBy: userId,
+        sharedAt: new Date(),
+      }).onConflictDoNothing();
+
+      // Update group quiz count
+      const quizCount = await db.select().from(groupQuizzesTable)
+        .where(eq(groupQuizzesTable.groupId, groupId));
+      await db.update(groupsTable)
+        .set({ totalQuizzes: quizCount.length })
+        .where(eq(groupsTable.id, groupId));
+
+      // Update member contribution
+      await db.update(groupMembersTable)
+        .set({ 
+          contributedQuizzes: sql`${groupMembersTable.contributedQuizzes} + 1`
+        })
+        .where(and(
+          eq(groupMembersTable.groupId, groupId),
+          eq(groupMembersTable.userId, userId)
+        ));
+    } catch (error) {
+      console.error("Error sharing quiz with group:", error);
+      throw error;
+    }
+  }
+
+  async getGroupQuizzes(groupId: string): Promise<any[]> {
+    try {
+      const groupQuizzes = await db.select()
+        .from(groupQuizzesTable)
+        .where(eq(groupQuizzesTable.groupId, groupId));
+      
+      const quizIds = groupQuizzes.map(gq => gq.quizId);
+      if (quizIds.length === 0) return [];
+
+      const quizzes = await db.select().from(quizzesTable)
+        .where(sql`${quizzesTable.id} = ANY(${quizIds})`);
+      
+      return quizzes.map(q => ({
+        id: q.id,
+        title: q.title,
+        description: q.description || undefined,
+        questions: (q.questions as any) || [],
+        theme: (q.theme as any) || "purple",
+        difficulty: (q.difficulty as any) || "intermediate",
+        timeLimit: q.timeLimit || undefined,
+        category: (q.category as any) || undefined,
+        tags: (q.tags as string[]) || [],
+        isPublic: q.isPublic !== false,
+        userId: q.userId || undefined,
+        createdAt: q.createdAt?.toISOString() || new Date().toISOString(),
+        updatedAt: q.updatedAt?.toISOString() || new Date().toISOString(),
+        plays: q.plays || 0,
+        averageScore: q.averageScore || 0,
+      }));
+    } catch (error) {
+      console.error("Error getting group quizzes:", error);
+      return [];
+    }
+  }
+
+  async unshareQuizFromGroup(groupId: string, quizId: string): Promise<void> {
+    try {
+      await db.delete(groupQuizzesTable)
+        .where(and(
+          eq(groupQuizzesTable.groupId, groupId),
+          eq(groupQuizzesTable.quizId, quizId)
+        ));
+
+      // Update group quiz count
+      const quizCount = await db.select().from(groupQuizzesTable)
+        .where(eq(groupQuizzesTable.groupId, groupId));
+      await db.update(groupsTable)
+        .set({ totalQuizzes: quizCount.length })
+        .where(eq(groupsTable.id, groupId));
+    } catch (error) {
+      console.error("Error unsharing quiz from group:", error);
+      throw error;
+    }
   }
 }
 

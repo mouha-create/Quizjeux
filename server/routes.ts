@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { generateQuestions as generateQuestionsAnthropic } from "./anthropic";
 import { generateQuestions as generateQuestionsOpenAI } from "./openai";
 import { generateQuestions as generateQuestionsGemini } from "./gemini";
-import { insertQuizSchema, aiGenerateRequestSchema, loginSchema, signupSchema } from "@shared/schema";
+import { insertQuizSchema, aiGenerateRequestSchema, loginSchema, signupSchema, createGroupSchema } from "@shared/schema";
 import type { Question, QuizResult, UserStats } from "@shared/schema";
 import { hashPassword, verifyPassword } from "./auth";
 import { db } from "./database";
@@ -570,6 +570,192 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error removing favorite:", error);
       res.status(500).json({ error: "Failed to remove favorite" });
+    }
+  });
+
+  // Groups/Guilde routes
+  app.post("/api/groups", async (req, res) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const validationResult = createGroupSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          error: "Invalid group data", 
+          details: validationResult.error.errors 
+        });
+      }
+
+      const group = await storage.createGroup(validationResult.data, req.session.userId);
+      res.status(201).json(group);
+    } catch (error: any) {
+      console.error("Error creating group:", error);
+      res.status(500).json({ 
+        error: "Failed to create group",
+        message: error?.message || "Unknown error"
+      });
+    }
+  });
+
+  app.get("/api/groups", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      const groups = await storage.getGroups(userId);
+      res.json(groups);
+    } catch (error) {
+      console.error("Error fetching groups:", error);
+      res.status(500).json({ error: "Failed to fetch groups" });
+    }
+  });
+
+  app.get("/api/groups/:id", async (req, res) => {
+    try {
+      const group = await storage.getGroup(req.params.id);
+      if (!group) {
+        return res.status(404).json({ error: "Group not found" });
+      }
+      res.json(group);
+    } catch (error) {
+      console.error("Error fetching group:", error);
+      res.status(500).json({ error: "Failed to fetch group" });
+    }
+  });
+
+  app.patch("/api/groups/:id", async (req, res) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const group = await storage.getGroup(req.params.id);
+      if (!group) {
+        return res.status(404).json({ error: "Group not found" });
+      }
+
+      if (group.creatorId !== req.session.userId) {
+        return res.status(403).json({ error: "Only creator can update group" });
+      }
+
+      const updated = await storage.updateGroup(req.params.id, req.body);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating group:", error);
+      res.status(500).json({ error: "Failed to update group" });
+    }
+  });
+
+  app.delete("/api/groups/:id", async (req, res) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const deleted = await storage.deleteGroup(req.params.id, req.session.userId);
+      if (!deleted) {
+        return res.status(404).json({ error: "Group not found or not authorized" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting group:", error);
+      res.status(500).json({ error: "Failed to delete group" });
+    }
+  });
+
+  app.post("/api/groups/:id/join", async (req, res) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      await storage.joinGroup(req.params.id, req.session.userId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error joining group:", error);
+      res.status(500).json({ 
+        error: error?.message || "Failed to join group" 
+      });
+    }
+  });
+
+  app.post("/api/groups/:id/leave", async (req, res) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      await storage.leaveGroup(req.params.id, req.session.userId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error leaving group:", error);
+      res.status(500).json({ 
+        error: error?.message || "Failed to leave group" 
+      });
+    }
+  });
+
+  app.get("/api/groups/:id/members", async (req, res) => {
+    try {
+      const members = await storage.getGroupMembers(req.params.id);
+      res.json(members);
+    } catch (error) {
+      console.error("Error fetching group members:", error);
+      res.status(500).json({ error: "Failed to fetch group members" });
+    }
+  });
+
+  app.get("/api/groups/:id/quizzes", async (req, res) => {
+    try {
+      const quizzes = await storage.getGroupQuizzes(req.params.id);
+      res.json(quizzes);
+    } catch (error) {
+      console.error("Error fetching group quizzes:", error);
+      res.status(500).json({ error: "Failed to fetch group quizzes" });
+    }
+  });
+
+  app.post("/api/groups/:id/quizzes/:quizId", async (req, res) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      await storage.shareQuizWithGroup(req.params.id, req.params.quizId, req.session.userId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error sharing quiz with group:", error);
+      res.status(500).json({ 
+        error: error?.message || "Failed to share quiz with group" 
+      });
+    }
+  });
+
+  app.delete("/api/groups/:id/quizzes/:quizId", async (req, res) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      await storage.unshareQuizFromGroup(req.params.id, req.params.quizId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error unsharing quiz from group:", error);
+      res.status(500).json({ error: "Failed to unshare quiz from group" });
+    }
+  });
+
+  app.get("/api/my-groups", async (req, res) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const groups = await storage.getUserGroups(req.session.userId);
+      res.json(groups);
+    } catch (error) {
+      console.error("Error fetching user groups:", error);
+      res.status(500).json({ error: "Failed to fetch user groups" });
     }
   });
 

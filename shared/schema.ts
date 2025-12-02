@@ -54,6 +54,7 @@ export const quizSchema = z.object({
   category: z.enum(quizCategories).optional(),
   tags: z.array(z.string()).default([]),
   isPublic: z.boolean().default(true),
+  sharedWithGroups: z.array(z.string()).optional(), // IDs des groupes avec lesquels le quiz est partagé
   userId: z.string().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
@@ -169,6 +170,47 @@ export const authResponseSchema = z.object({
   }),
 });
 
+// Group/Guilde schemas
+export const groupSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1).max(50),
+  description: z.string().optional(),
+  badge: z.string().optional(),
+  creatorId: z.string(),
+  visibility: z.enum(["public", "private"]).default("public"),
+  joinType: z.enum(["open", "invite_only"]).default("open"),
+  memberCount: z.number().default(0),
+  totalQuizzes: z.number().default(0),
+  averageScore: z.number().default(0),
+  totalPoints: z.number().default(0),
+  badges: z.array(z.string()).default([]),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export type Group = z.infer<typeof groupSchema>;
+
+export const createGroupSchema = z.object({
+  name: z.string().min(1).max(50),
+  description: z.string().optional(),
+  badge: z.string().optional(),
+  visibility: z.enum(["public", "private"]).default("public"),
+  joinType: z.enum(["open", "invite_only"]).default("open"),
+});
+
+export type CreateGroupRequest = z.infer<typeof createGroupSchema>;
+
+export const groupMemberSchema = z.object({
+  groupId: z.string(),
+  userId: z.string(),
+  role: z.enum(["creator", "admin", "member"]).default("member"),
+  joinedAt: z.string(),
+  contributedQuizzes: z.number().default(0),
+  contributedPoints: z.number().default(0),
+});
+
+export type GroupMember = z.infer<typeof groupMemberSchema>;
+
 export type AuthResponse = z.infer<typeof authResponseSchema>;
 
 // ============ DRIZZLE ORM TABLES ============
@@ -194,6 +236,7 @@ export const quizzesTable = pgTable("quizzes", {
   category: varchar("category"),
   tags: text("tags").array().default(sql`ARRAY[]::text[]`),
   isPublic: boolean("is_public").default(true),
+  sharedWithGroups: text("shared_with_groups").array().default(sql`ARRAY[]::text[]`),
   userId: varchar("user_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -236,6 +279,44 @@ export const userFavoritesTable = pgTable("user_favorites", {
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => ({
   pk: sql`PRIMARY KEY (${table.userId}, ${table.quizId})`,
+}));
+
+// Groups/Guilde system tables
+export const groupsTable = pgTable("groups", {
+  id: varchar("id").primaryKey(),
+  name: varchar("name").notNull(),
+  description: text("description"),
+  badge: varchar("badge"), // Badge/logo du groupe
+  creatorId: varchar("creator_id").notNull(),
+  visibility: varchar("visibility").default("public"), // public, private
+  joinType: varchar("join_type").default("open"), // open, invite_only
+  memberCount: integer("member_count").default(0),
+  totalQuizzes: integer("total_quizzes").default(0),
+  averageScore: integer("average_score").default(0),
+  totalPoints: integer("total_points").default(0),
+  badges: text("badges").array().default(sql`ARRAY[]::text[]`),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const groupMembersTable = pgTable("group_members", {
+  groupId: varchar("group_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  role: varchar("role").default("member"), // creator, admin, member
+  joinedAt: timestamp("joined_at").defaultNow(),
+  contributedQuizzes: integer("contributed_quizzes").default(0),
+  contributedPoints: integer("contributed_points").default(0),
+}, (table) => ({
+  pk: sql`PRIMARY KEY (${table.groupId}, ${table.userId})`,
+}));
+
+export const groupQuizzesTable = pgTable("group_quizzes", {
+  groupId: varchar("group_id").notNull(),
+  quizId: varchar("quiz_id").notNull(),
+  sharedBy: varchar("shared_by").notNull(), // userId qui a partagé
+  sharedAt: timestamp("shared_at").defaultNow(),
+}, (table) => ({
+  pk: sql`PRIMARY KEY (${table.groupId}, ${table.quizId})`,
 }));
 
 // Session table for connect-pg-simple
