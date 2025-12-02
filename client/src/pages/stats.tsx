@@ -609,6 +609,5 @@ function StatsContent() {
         <AdSenseInArticle />
       </div>
     </div>
-    </>
   );
 }
