@@ -4,6 +4,7 @@ import { Sparkles, Zap, Trophy, Brain, Target, Clock, ChevronRight, Play, Users 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/lib/auth-context";
+import { SEO } from "@/components/seo";
 
 const features = [
   {
@@ -54,6 +55,19 @@ const itemVariants = {
 };
 
 export default function Home() {
+  return (
+    <>
+      <SEO
+        title="QuizCraft AI - Create Interactive Quizzes with AI"
+        description="Create engaging, AI-powered quizzes in minutes. Perfect for education, marketing, and recruitment. Features gamification, analytics, and customizable themes."
+        keywords="quiz, quiz maker, AI quiz generator, online quiz, interactive quiz, quiz creator, gamification, quiz platform, education, learning"
+      />
+      <HomeContent />
+    </>
+  );
+}
+
+function HomeContent() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
 

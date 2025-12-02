@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { getThemeGradient, getThemeClasses } from "@/lib/quiz-themes";
 import { triggerConfetti, triggerCelebration } from "@/lib/confetti";
+import { SEO } from "@/components/seo";
 import type { Quiz, Question, QuizResult } from "@shared/schema";
 
 function QuizLoading() {
@@ -198,6 +199,12 @@ export default function Play() {
   const { data: quiz, isLoading } = useQuery<Quiz>({
     queryKey: ["/api/quizzes", id],
   });
+
+  // SEO for quiz page
+  const quizTitle = quiz ? `${quiz.title} - QuizCraft AI` : "Play Quiz - QuizCraft AI";
+  const quizDescription = quiz 
+    ? `Take the "${quiz.title}" quiz. ${quiz.description || "Test your knowledge with this interactive quiz."}`
+    : "Take interactive quizzes and test your knowledge with QuizCraft AI.";
 
   const submitMutation = useMutation({
     mutationFn: async (data: { quizId: string; answers: Record<string, string | string[]>; timeSpent: number }) => {
@@ -534,7 +541,14 @@ export default function Play() {
 
   // Quiz Playing Screen
   return (
-    <div className={`min-h-screen ${themeGradient} p-4`}>
+    <>
+      <SEO
+        title={quizTitle}
+        description={quizDescription}
+        keywords={quiz ? `${quiz.title}, quiz, ${quiz.category || ""}, ${quiz.difficulty || ""}, interactive quiz` : "quiz, interactive quiz, test knowledge"}
+        type="article"
+      />
+      <div className={`min-h-screen ${themeGradient} p-4`}>
       <div className="mx-auto max-w-3xl pt-4">
         {/* Progress Header */}
         <div className="mb-4 flex items-center justify-between text-white">
@@ -687,5 +701,6 @@ export default function Play() {
         </AnimatePresence>
       </div>
     </div>
+    </>
   );
 }

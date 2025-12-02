@@ -29,6 +29,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { getThemeClasses } from "@/lib/quiz-themes";
+import { SEO } from "@/components/seo";
 import type { Quiz, QuizTheme, DifficultyLevel, QuizCategory } from "@shared/schema";
 import { quizThemes, difficultyLevels, quizCategories } from "@shared/schema";
 import { useState } from "react";
@@ -82,6 +83,19 @@ function ThemeDot({ theme }: { theme: QuizTheme }) {
 }
 
 export default function Library() {
+  return (
+    <>
+      <SEO
+        title="Quiz Library - Browse All Quizzes | QuizCraft AI"
+        description="Browse and discover thousands of interactive quizzes. Filter by category, difficulty, and theme. Find the perfect quiz for your needs."
+        keywords="quiz library, browse quizzes, quiz collection, find quizzes, quiz categories, quiz search"
+      />
+      <LibraryContent />
+    </>
+  );
+}
+
+function LibraryContent() {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTheme, setSelectedTheme] = useState<QuizTheme | "all">("all");

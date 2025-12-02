@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { SEO } from "@/components/seo";
 import { useState } from "react";
 import type { Group } from "@shared/schema";
 
@@ -128,6 +129,19 @@ function GroupCard({
 }
 
 export default function Groups() {
+  return (
+    <>
+      <SEO
+        title="Groups & Guilds - Join Quiz Communities | QuizCraft AI"
+        description="Join or create quiz groups and guilds. Compete with friends, share quizzes, and climb the group leaderboard. Build your quiz community today."
+        keywords="quiz groups, quiz guilds, quiz communities, group leaderboard, quiz sharing, quiz teams"
+      />
+      <GroupsContent />
+    </>
+  );
+}
+
+function GroupsContent() {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
 
