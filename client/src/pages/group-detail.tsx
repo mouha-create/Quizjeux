@@ -157,13 +157,20 @@ export default function GroupDetail() {
       }
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({
         title: "Groupe rejoint !",
         description: `Vous avez rejoint "${group?.name}"`,
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/groups", id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/my-groups"] });
+      // Invalidate and refetch all related queries
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["/api/groups", id] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/my-groups"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/groups", id, "members"] }),
+        refetchMyGroups(),
+        refetchGroup(),
+        refetchMembers(),
+      ]);
     },
     onError: (error: any) => {
       toast({
