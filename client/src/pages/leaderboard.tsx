@@ -227,6 +227,5 @@ function LeaderboardContent() {
         <AdSenseInArticle />
       </div>
     </div>
-    </>
   );
 }
