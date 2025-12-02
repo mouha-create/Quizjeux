@@ -84,68 +84,81 @@ Respond with a JSON object in this exact format:
 
 Make questions engaging, educational, and accurate. Ensure there is variety in the questions and that they cover different aspects of the topic. Always respond with valid JSON only, no additional text.`;
 
-  try {
-    const model = gemini.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
-      systemInstruction: "You are an expert quiz creator who generates engaging, accurate, and educational quiz questions. Always respond with valid JSON only, no additional text.",
-      generationConfig: {
-        temperature: 0.7,
-        topK: 40,
-        topP: 0.95,
-        maxOutputTokens: 4096,
-        responseMimeType: "application/json",
-      },
-    });
-    
-    const result = await model.generateContent(prompt);
-    const response = result.response;
-    const text = response.text();
+  // Try multiple model names in order of preference
+  const modelNames = ["gemini-pro", "gemini-1.5-flash", "gemini-1.5-pro"];
+  let lastError: Error | null = null;
 
-    if (!text) {
-      throw new Error("Empty response from AI");
-    }
-
-    let parsed: any;
+  for (const modelName of modelNames) {
     try {
-      parsed = JSON.parse(text);
-    } catch (parseError) {
-      console.error("JSON parse error. Raw response:", text);
-      throw new Error(`Invalid JSON response from AI: ${parseError instanceof Error ? parseError.message : "Unknown parse error"}`);
-    }
-
-    if (!parsed || !Array.isArray(parsed.questions)) {
-      console.error("Invalid response structure. Parsed:", parsed);
-      throw new Error("AI response missing 'questions' array");
-    }
-
-    const questions: Question[] = parsed.questions.map((q: any, index: number) => {
-      if (!q.type || !q.question || !q.options || q.correctAnswer === undefined) {
-        throw new Error(`Question ${index + 1} is missing required fields (type, question, options, or correctAnswer)`);
-      }
+      const model = gemini.getGenerativeModel({ 
+        model: modelName,
+        systemInstruction: "You are an expert quiz creator who generates engaging, accurate, and educational quiz questions. Always respond with valid JSON only, no additional text.",
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 4096,
+          responseMimeType: "application/json",
+        },
+      });
       
-      return {
-        id: randomUUID(),
-        type: q.type as QuestionType,
-        question: q.question,
-        options: q.options,
-        correctAnswer: q.correctAnswer,
-        explanation: q.explanation || "",
-        points: 10,
-      };
-    });
+      const result = await model.generateContent(prompt);
+      const response = result.response;
+      const text = response.text();
 
-    if (questions.length === 0) {
-      throw new Error("No questions generated");
-    }
+      if (!text) {
+        throw new Error("Empty response from AI");
+      }
 
-    return questions;
-  } catch (error) {
-    console.error("Error generating questions:", error);
-    if (error instanceof Error) {
-      // Preserve specific error messages
-      throw error;
+      let parsed: any;
+      try {
+        parsed = JSON.parse(text);
+      } catch (parseError) {
+        console.error("JSON parse error. Raw response:", text);
+        throw new Error(`Invalid JSON response from AI: ${parseError instanceof Error ? parseError.message : "Unknown parse error"}`);
+      }
+
+      if (!parsed || !Array.isArray(parsed.questions)) {
+        console.error("Invalid response structure. Parsed:", parsed);
+        throw new Error("AI response missing 'questions' array");
+      }
+
+      const questions: Question[] = parsed.questions.map((q: any, index: number) => {
+        if (!q.type || !q.question || !q.options || q.correctAnswer === undefined) {
+          throw new Error(`Question ${index + 1} is missing required fields (type, question, options, or correctAnswer)`);
+        }
+        
+        return {
+          id: randomUUID(),
+          type: q.type as QuestionType,
+          question: q.question,
+          options: q.options,
+          correctAnswer: q.correctAnswer,
+          explanation: q.explanation || "",
+          points: 10,
+        };
+      });
+
+      if (questions.length === 0) {
+        throw new Error("No questions generated");
+      }
+
+      console.log(`Successfully generated questions using model: ${modelName}`);
+      return questions;
+    } catch (error) {
+      console.error(`Error with model ${modelName}:`, error);
+      lastError = error instanceof Error ? error : new Error(String(error));
+      // Continue to next model
+      continue;
     }
-    throw new Error("Failed to generate questions. Please try again.");
   }
+
+  // If all models failed, throw the last error
+  if (lastError) {
+    console.error("All Gemini models failed. Last error:", lastError);
+    throw lastError;
+  }
+  
+  throw new Error("Failed to generate questions. No available models.");
 }
 
