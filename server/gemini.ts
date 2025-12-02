@@ -86,7 +86,7 @@ Make questions engaging, educational, and accurate. Ensure there is variety in t
 
   try {
     const model = gemini.getGenerativeModel({ 
-      model: "gemini-1.5-pro",
+      model: "gemini-1.5-flash",
       systemInstruction: "You are an expert quiz creator who generates engaging, accurate, and educational quiz questions. Always respond with valid JSON only, no additional text.",
       generationConfig: {
         temperature: 0.7,
