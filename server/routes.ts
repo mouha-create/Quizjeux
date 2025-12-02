@@ -462,9 +462,9 @@ export async function registerRoutes(
         quizHistory: [...(currentStats.quizHistory || []), savedResult.id].slice(-50),
       };
       
-      // Calculate badges - pass existing results for accurate perfect score counting
-      const existingResults = await storage.getResults(req.session.userId);
-      const earnedBadges = (storage as any).calculateBadges(newStats, result, existingResults);
+      // Calculate badges - use existing results and add the new one for accurate perfect score counting
+      const allUserResults = [...existingResults, savedResult];
+      const earnedBadges = (storage as any).calculateBadges(newStats, result, allUserResults);
       const newBadges = earnedBadges.length > (currentStats.badges?.length || 0) 
         ? earnedBadges 
         : (currentStats.badges || []);
