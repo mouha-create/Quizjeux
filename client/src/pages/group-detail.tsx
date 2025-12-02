@@ -339,6 +339,31 @@ export default function GroupDetail() {
         </Card>
       </motion.div>
 
+      {/* Actions */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="mb-8"
+      >
+        <div className="flex gap-4">
+          <Link href={`/groups/${id}/leaderboard`}>
+            <Button variant="outline" className="gap-2">
+              <BarChart className="h-4 w-4" />
+              Voir le Classement
+            </Button>
+          </Link>
+          {isCreator && (
+            <Link href={`/groups/${id}/results`}>
+              <Button variant="outline" className="gap-2">
+                <BarChart3 className="h-4 w-4" />
+                Résultats Détaillés
+              </Button>
+            </Link>
+          )}
+        </div>
+      </motion.div>
+
       {/* Badges */}
       {group.badges && group.badges.length > 0 && (
         <motion.div

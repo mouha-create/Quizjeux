@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Trophy, Medal, Target, TrendingUp } from "lucide-react";
+import { Trophy, Medal, Target, TrendingUp, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { Link } from "wouter";
 import type { LeaderboardEntry } from "@shared/schema";
 
 function getRankIcon(rank: number) {
@@ -41,12 +43,27 @@ function LeaderboardRow({
       </div>
       
       <div className="flex-1">
-        <p className={`font-medium ${isCurrentUser ? "text-primary" : ""}`}>
-          {entry.name}
-          {isCurrentUser && (
-            <span className="ml-2 text-sm text-muted-foreground">(You)</span>
+        <div className="flex items-center gap-2">
+          <p className={`font-medium ${isCurrentUser ? "text-primary" : ""}`}>
+            {entry.name}
+            {isCurrentUser && (
+              <span className="ml-2 text-sm text-muted-foreground">(You)</span>
+            )}
+          </p>
+          {entry.type === "group" && (
+            <Badge variant="secondary" className="gap-1">
+              <Users className="h-3 w-3" />
+              Groupe
+            </Badge>
           )}
-        </p>
+          {entry.type === "group" && entry.groupId && (
+            <Link href={`/groups/${entry.groupId}`}>
+              <span className="text-xs text-muted-foreground hover:text-primary cursor-pointer">
+                Voir →
+              </span>
+            </Link>
+          )}
+        </div>
       </div>
       
       <div className="grid grid-cols-3 gap-8 text-right">

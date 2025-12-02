@@ -57,6 +57,10 @@ export interface IStorage {
   shareQuizWithGroup(groupId: string, quizId: string, userId: string): Promise<void>;
   getGroupQuizzes(groupId: string): Promise<any[]>;
   unshareQuizFromGroup(groupId: string, quizId: string): Promise<void>;
+  
+  // Group leaderboard and stats
+  getGroupLeaderboard(groupId: string): Promise<LeaderboardEntry[]>;
+  getGroupMemberResults(groupId: string, quizId?: string): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -922,6 +926,150 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Error unsharing quiz from group:", error);
       throw error;
+    }
+  }
+
+  async getGroupLeaderboard(groupId: string): Promise<LeaderboardEntry[]> {
+    try {
+      // Get all members of the group
+      const members = await db.select()
+        .from(groupMembersTable)
+        .where(eq(groupMembersTable.groupId, groupId));
+      
+      if (members.length === 0) return [];
+
+      const memberIds = members.map(m => m.userId);
+      
+      // Get group quiz IDs
+      const groupQuizIds = await db.select({ quizId: groupQuizzesTable.quizId })
+        .from(groupQuizzesTable)
+        .where(eq(groupQuizzesTable.groupId, groupId));
+      
+      const quizIds = groupQuizIds.map(gq => gq.quizId);
+      
+      // Calculate points from group quizzes only
+      const groupResults = quizIds.length > 0
+        ? await db.select()
+            .from(resultsTable)
+            .where(and(
+              inArray(resultsTable.userId, memberIds),
+              inArray(resultsTable.quizId, quizIds)
+            ))
+        : [];
+      
+      // Calculate points per user from group quizzes
+      const userGroupPoints = new Map<string, number>();
+      const userGroupQuizzes = new Map<string, Set<string>>();
+      const userGroupCorrect = new Map<string, number>();
+      const userGroupTotal = new Map<string, number>();
+      
+      groupResults.forEach(result => {
+        const userId = result.userId;
+        const currentPoints = userGroupPoints.get(userId) || 0;
+        userGroupPoints.set(userId, currentPoints + (result.score || 0));
+        
+        const quizSet = userGroupQuizzes.get(userId) || new Set();
+        quizSet.add(result.quizId);
+        userGroupQuizzes.set(userId, quizSet);
+        
+        const currentCorrect = userGroupCorrect.get(userId) || 0;
+        userGroupCorrect.set(userId, currentCorrect + (result.correctAnswers || 0));
+        
+        const currentTotal = userGroupTotal.get(userId) || 0;
+        userGroupTotal.set(userId, currentTotal + (result.totalQuestions || 0));
+      });
+      
+      // Get usernames
+      const allUsers = await db.select().from(usersTable);
+      const userMap = new Map(allUsers.map(u => [u.id, u.username]));
+      
+      // Build leaderboard entries
+      const leaderboard: LeaderboardEntry[] = members
+        .map((member) => {
+          const username = userMap.get(member.userId) || "Unknown";
+          const points = userGroupPoints.get(member.userId) || 0;
+          const quizzes = userGroupQuizzes.get(member.userId)?.size || 0;
+          const correct = userGroupCorrect.get(member.userId) || 0;
+          const total = userGroupTotal.get(member.userId) || 0;
+          const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
+          
+          return {
+            rank: 0, // Will be set after sorting
+            name: username,
+            score: points,
+            quizzes: quizzes,
+            accuracy: accuracy,
+          };
+        })
+        .filter(entry => entry.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .map((entry, index) => ({
+          ...entry,
+          rank: index + 1,
+        }));
+      
+      return leaderboard;
+    } catch (error) {
+      console.error("Error getting group leaderboard:", error);
+      return [];
+    }
+  }
+
+  async getGroupMemberResults(groupId: string, quizId?: string): Promise<any[]> {
+    try {
+      // Get all members
+      const members = await db.select()
+        .from(groupMembersTable)
+        .where(eq(groupMembersTable.groupId, groupId));
+      
+      const memberIds = members.map(m => m.userId);
+      if (memberIds.length === 0) return [];
+
+      // Get group quiz IDs
+      const groupQuizIds = await db.select({ quizId: groupQuizzesTable.quizId })
+        .from(groupQuizzesTable)
+        .where(eq(groupQuizzesTable.groupId, groupId));
+      
+      const allQuizIds = groupQuizIds.map(gq => gq.quizId);
+      const targetQuizIds = quizId ? [quizId] : allQuizIds;
+      
+      if (targetQuizIds.length === 0) return [];
+
+      // Get results for group quizzes
+      const results = await db.select()
+        .from(resultsTable)
+        .where(and(
+          inArray(resultsTable.userId, memberIds),
+          inArray(resultsTable.quizId, targetQuizIds)
+        ))
+        .orderBy(desc(resultsTable.completedAt));
+      
+      // Get usernames and quiz titles
+      const allUsers = await db.select().from(usersTable);
+      const userMap = new Map(allUsers.map(u => [u.id, u.username]));
+      
+      const allQuizzes = await db.select().from(quizzesTable);
+      const quizMap = new Map(allQuizzes.map(q => [q.id, q.title]));
+      
+      return results.map(r => ({
+        id: r.id,
+        quizId: r.quizId,
+        quizTitle: quizMap.get(r.quizId) || "Unknown Quiz",
+        userId: r.userId,
+        username: userMap.get(r.userId) || "Unknown",
+        score: r.score || 0,
+        totalPoints: r.totalPoints || 0,
+        correctAnswers: r.correctAnswers || 0,
+        totalQuestions: r.totalQuestions || 0,
+        timeSpent: r.timeSpent || 0,
+        completedAt: r.completedAt?.toISOString() || new Date().toISOString(),
+        accuracy: r.totalQuestions > 0 
+          ? Math.round(((r.correctAnswers || 0) / r.totalQuestions) * 100)
+          : 0,
+      }));
+    } catch (error) {
+      console.error("Error getting group member results:", error);
+      return [];
     }
   }
 }

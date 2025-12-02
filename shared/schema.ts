@@ -132,6 +132,9 @@ export const leaderboardEntrySchema = z.object({
   score: z.number(),
   quizzes: z.number(),
   accuracy: z.number(),
+  type: z.enum(["user", "group"]).optional(),
+  groupId: z.string().optional(),
+  userId: z.string().optional(),
 });
 
 export type LeaderboardEntry = z.infer<typeof leaderboardEntrySchema>;

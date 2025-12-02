@@ -851,5 +851,42 @@ export async function registerRoutes(
     }
   });
 
+  // Group leaderboard (members ranking within group)
+  app.get("/api/groups/:id/leaderboard", async (req, res) => {
+    try {
+      const leaderboard = await storage.getGroupLeaderboard(req.params.id);
+      res.json(leaderboard);
+    } catch (error) {
+      console.error("Error fetching group leaderboard:", error);
+      res.status(500).json({ error: "Failed to fetch group leaderboard" });
+    }
+  });
+
+  // Group member results (detailed results for admin)
+  app.get("/api/groups/:id/results", async (req, res) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const group = await storage.getGroup(req.params.id);
+      if (!group) {
+        return res.status(404).json({ error: "Group not found" });
+      }
+
+      // Only creator/admin can see detailed results
+      if (group.creatorId !== req.session.userId) {
+        return res.status(403).json({ error: "Only group creator can view detailed results" });
+      }
+
+      const quizId = req.query.quizId as string | undefined;
+      const results = await storage.getGroupMemberResults(req.params.id, quizId);
+      res.json(results);
+    } catch (error) {
+      console.error("Error fetching group member results:", error);
+      res.status(500).json({ error: "Failed to fetch group member results" });
+    }
+  });
+
   return httpServer;
 }
