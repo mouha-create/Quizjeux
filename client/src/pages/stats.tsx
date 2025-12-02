@@ -604,6 +604,11 @@ function StatsContent() {
           </CardContent>
         </Card>
       </motion.div>
+
+      <div className="my-6 flex justify-center">
+        <AdSenseInArticle />
+      </div>
     </div>
+    </>
   );
 }
